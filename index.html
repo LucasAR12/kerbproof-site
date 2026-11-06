@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Kerbproof</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Kerbproof matches your carrier statement against your delivery report and shows every drop you delivered but weren't paid for.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..900&family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap">
+<style>
+/* Layout: hero de duas colunas com o painel de conferência ao vivo; depois faixas que alternam giz e asfalto, e o formulário da conferência grátis no fim. */
+:root{
+  --bg:#F4F3EF; --surface:#FFFFFF; --fg:#15161C; --fg-2:#45474F; --mute:#6B6D76; --line:#E2E1DC;
+  --accent:#5B3DF5; --accent-ink:#FFFFFF; --accent-soft:#ECE8FF; --accent-text:#5B3DF5;
+  --logo-a:#15161C; --logo-b:#5B3DF5;
+  --band:#FFFFFF; --band-fg:#15161C; --band-mute:#45474F; --band-line:#E2E1DC; --band-surface:#F4F3EF;
+  --hivis:#FFD43B; --ok:#12A150; --ok-t:#0E7A3C; --ok-soft:#E7F6EE; --bad:#E5484D; --bad-t:#C2353A; --bad-soft:#FDECEC;
+  --panel:#FFFFFF; --panel-2:#F4F3EF; --panel-line:#E2E1DC; --panel-fg:#15161C; --panel-mute:#6B6D76;
+  --f-display:"Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body:"Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-num:"Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r:12px; --r-s:8px;
+}
+:root{color-scheme:light}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--fg);font:400 16px/1.55 var(--f-body);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);font-weight:800;font-stretch:112%;letter-spacing:-.03em;line-height:1.04;margin:0;text-wrap:balance}
+h1{font-size:clamp(38px,5.6vw,68px)}
+h2{font-size:clamp(30px,3.8vw,46px)}
+h3{font-size:20px;letter-spacing:-.02em;line-height:1.15}
+p{margin:0}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:6px}
+
+/* botões */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:12px 22px;border-radius:var(--r-s);font:600 16px/1 var(--f-body);text-decoration:none;border:1px solid transparent;cursor:pointer;transition:transform .15s ease, background-color .15s ease, box-shadow .15s ease}
+.btn-p{background:var(--accent);color:var(--accent-ink)}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 10px 24px -10px var(--accent)}
+.btn-p:active{transform:translateY(0)}
+.btn-g{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn-g:hover{background:var(--surface)}
+.btn svg{width:18px;height:18px}
+
+/* topo */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid transparent;transition:border-color .2s}
+.nav.scrolled{border-bottom-color:var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:28px;height:68px}
+.logo{display:block;height:24px;width:auto}
+.logo path{transition:fill .2s}
+.nav-links{display:flex;gap:24px;margin-left:auto;font-size:15px;color:var(--fg-2)}
+.nav-links a{text-decoration:none}
+.nav-links a:hover{color:var(--fg)}
+.nav .btn{min-height:40px;padding:10px 16px;font-size:15px}
+@media (max-width:760px){.nav-links{display:none}.nav .btn{margin-left:auto}}
+
+/* hero */
+.hero{padding-block:56px 72px}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:56px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font:500 13px var(--f-num);color:var(--fg-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 8px;margin-bottom:22px}
+.eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.hero h1 em{font-style:normal;color:var(--accent-text)}
+.hero .sub{font-size:19px;line-height:1.5;color:var(--fg-2);max-width:34em;margin-top:22px}
+.ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
+.fine{font-size:14px;color:var(--mute);margin-top:18px}
+@media (max-width:960px){.hero .wrap{grid-template-columns:minmax(0,1fr);gap:40px}.hero{padding-block:32px 56px}}
+
+/* painel ao vivo */
+.panel{background:var(--panel);color:var(--panel-fg);border-radius:16px;padding:20px;box-shadow:0 40px 80px -40px rgba(21,22,28,.35),0 0 0 1px var(--panel-line);font-size:14px;min-width:0}
+.p-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.p-head b{font:800 17px var(--f-display);font-stretch:112%;letter-spacing:-.02em}
+.p-tag{font:500 12px var(--f-num);color:var(--panel-mute);border:1px solid var(--panel-line);border-radius:6px;padding:3px 8px}
+.p-state{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font:500 12px var(--f-num);color:var(--panel-mute)}
+.p-state i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.panel.running .p-state i{background:var(--hivis);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.p-kpis{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:10px;margin-top:16px}
+.p-k{background:var(--panel-2);border:1px solid var(--panel-line);border-radius:10px;padding:12px 14px;min-width:0}
+.p-k .l{font-size:12px;color:var(--panel-mute)}
+.p-k .v{font:600 22px var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:4px;white-space:nowrap}
+.p-k.found{background:var(--hivis);border-color:var(--hivis);color:#15161C}
+.p-k.found .l{color:#4A3F12}
+.p-k.found .v{font-size:26px}
+.p-files{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-top:14px;font:500 12px var(--f-num);color:var(--panel-mute)}
+.p-file{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--panel-line);border-radius:8px;padding:8px 10px;min-width:0}
+.p-file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-file svg{flex:none;width:14px;height:14px}
+.p-x{color:var(--panel-mute)}
+.p-rows{margin-top:14px;border:1px solid var(--panel-line);border-radius:10px;overflow:hidden;height:calc(6 * 41px + 34px);position:relative}
+.p-row{display:grid;grid-template-columns:1.7fr .8fr 1fr .9fr;gap:8px;align-items:center;height:41px;padding:0 12px;border-top:1px solid var(--panel-line);font-size:13px}
+.p-row.h{height:34px;border-top:0;color:var(--panel-mute);font-size:12px;background:var(--panel-2)}
+.p-row .r{text-align:right}
+.p-row .id{font-family:var(--f-num);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-row.new{animation:rowin .32s cubic-bezier(.2,.8,.2,1)}
+@keyframes rowin{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:500;white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.p-row .chip.ok{background:#173526;color:#6FDCA0}
+.p-row .chip.bad{background:#3D1D20;color:#FF9396}
+.p-row.miss{background:linear-gradient(90deg,rgba(229,72,77,.10),transparent 70%)}
+.p-row .money{font-family:var(--f-num);text-align:right}
+.p-row.miss .money{color:#FF9396}
+.p-foot{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.p-foot .btn{min-height:40px;padding:10px 16px;font-size:14px;background:#5B3DF5;color:#fff}
+.p-foot .replay{margin-left:auto;background:none;border:0;color:var(--panel-mute);font:500 12px var(--f-num);cursor:pointer;padding:8px;border-radius:6px}
+.p-foot .replay:hover{color:var(--panel-fg)}
+.p-note{font:12px var(--f-num);color:var(--panel-mute)}
+@media (max-width:560px){
+  .panel{padding:14px;border-radius:14px}
+  .p-kpis{grid-template-columns:1fr 1fr}.p-k.found{grid-column:1/-1}
+  .p-row{grid-template-columns:1.6fr 1fr .9fr}.p-row .drv{display:none}
+  .p-files{grid-template-columns:1fr}.p-x{display:none}
+}
+
+/* seções */
+section{padding-block:88px}
+.sec-head{max-width:720px}
+.sec-head p{font-size:18px;color:var(--fg-2);margin-top:16px;max-width:36em}
+.band{background:var(--band);color:var(--band-fg)}
+.band .sec-head p{color:var(--band-mute)}
+@media (max-width:700px){section{padding-block:64px}}
+
+/* onde o dinheiro some */
+.leaks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--band-line);border:1px solid var(--band-line);border-radius:var(--r);overflow:hidden;margin-top:44px}
+.leak{background:var(--band);padding:28px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:start}
+.leak .tag{font:600 12px var(--f-num);color:#15161C;background:var(--hivis);border-radius:6px;padding:4px 8px;white-space:nowrap}
+.leak h3{color:var(--band-fg)}
+.leak p{color:var(--band-mute);margin-top:8px;font-size:15px}
+.leak .eg{display:block;margin-top:12px;font:13px var(--f-num);color:var(--band-fg);opacity:.85}
+@media (max-width:760px){.leaks{grid-template-columns:minmax(0,1fr)}.leak{padding:22px}}
+
+/* como funciona */
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:44px;counter-reset:s}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.step .n{font:600 13px var(--f-num);color:var(--accent-text)}
+.step p{color:var(--fg-2);font-size:15px}
+.step .art{margin-top:auto;padding-top:14px;display:grid;gap:8px}
+.file{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:13px var(--f-num);background:var(--bg);min-width:0}
+.file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file svg{flex:none;width:16px;height:16px;color:var(--accent-text)}
+.match{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;font:12px var(--f-num)}
+.match span{border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--bg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.match b{font-weight:600;color:var(--ok-t)}
+.match.x b{color:var(--bad-t)}
+.gap{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-radius:8px;padding:12px 14px;background:var(--accent-soft)}
+.gap .num{font-size:22px;font-weight:600;color:var(--accent-text)}
+.gap small{font-size:13px;color:var(--fg-2)}
+@media (max-width:900px){.steps{grid-template-columns:minmax(0,1fr)}}
+
+/* pacote de contestação */
+.pack .wrap{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:56px;align-items:center}
+.ticks{display:grid;gap:14px;margin-top:28px;padding:0;list-style:none}
+.ticks li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;font-size:16px;color:var(--fg-2)}
+.ticks li b{color:var(--fg);font-weight:600}
+.ticks svg{width:22px;height:22px;margin-top:1px}
+.doc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:28px;box-shadow:0 30px 60px -40px rgba(21,22,28,.35);min-width:0}
+.doc-h{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.doc-h .t{font:800 18px var(--f-display);font-stretch:112%;letter-spacing:-.02em}
+.doc-h .m{font:12px/1.6 var(--f-num);color:var(--mute);margin-top:4px}
+.doc-h .total{text-align:right;flex:none}
+.doc-h .total .num{font-size:24px;font-weight:600;color:var(--bad-t);display:block}
+.doc-h .total small{font-size:12px;color:var(--mute)}
+.doc-tbl{overflow-x:auto;margin-top:6px}
+.doc table{width:100%;border-collapse:collapse;font-size:13px;min-width:460px}
+.doc th{text-align:left;font-weight:500;color:var(--mute);padding:10px 8px;border-bottom:1px solid var(--line);font-size:12px}
+.doc td{padding:11px 8px;border-bottom:1px solid var(--line)}
+.doc td.num,.doc th.r{text-align:right}
+.doc .ev{display:inline-flex;gap:6px;flex-wrap:wrap}
+.doc .ev span{font:11px var(--f-num);border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--fg-2);white-space:nowrap}
+.doc-f{display:flex;justify-content:space-between;gap:12px;margin-top:16px;font:12px var(--f-num);color:var(--mute);flex-wrap:wrap}
+@media (max-width:900px){.pack .wrap{grid-template-columns:minmax(0,1fr);gap:40px}.doc{padding:20px}}
+
+/* conferência grátis */
+.check .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:start}
+.promise{display:grid;gap:18px;margin-top:32px}
+.promise div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;padding-top:18px;border-top:1px solid var(--band-line)}
+.promise dt,.promise .k{font:600 13px var(--f-num);color:var(--accent)}
+.promise p{color:var(--band-mute);font-size:15px}
+.promise p b{color:var(--band-fg);font-weight:600}
+form{background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:16px;padding:28px;display:grid;gap:16px;min-width:0}
+.field{display:grid;gap:6px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+label{font-size:14px;font-weight:500}
+label .opt{color:var(--mute);font-weight:400}
+input,select{font:400 16px var(--f-body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:var(--r-s);padding:12px 14px;min-height:48px;width:100%;transition:border-color .15s, box-shadow .15s}
+input::placeholder{color:var(--mute)}
+input:hover,select:hover{border-color:color-mix(in srgb,var(--fg) 30%,var(--line))}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.field.err input,.field.err select{border-color:var(--bad)}
+.msg{font-size:13px;color:var(--bad-t);min-height:0}
+.msg:empty{display:none}
+.consent{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;font-size:14px;color:var(--fg-2);font-weight:400}
+.consent input{width:20px;height:20px;min-height:0;padding:0;margin:1px 0 0;accent-color:var(--accent)}
+form .btn{width:100%}
+.btn[disabled]{opacity:.7;cursor:progress}
+.form-note{font-size:13px;color:var(--mute)}
+.done{display:grid;gap:12px;align-content:start;background:var(--surface);color:var(--fg);border-radius:16px;padding:32px}
+.done .badge{width:48px;height:48px;border-radius:12px;background:var(--accent);display:grid;place-items:center}
+.done .badge svg{width:30px;height:30px}
+.done p{color:var(--fg-2)}
+@media (max-width:900px){.check .wrap{grid-template-columns:minmax(0,1fr);gap:40px}}
+@media (max-width:520px){.row2{grid-template-columns:minmax(0,1fr)}form{padding:20px}.promise div{grid-template-columns:minmax(0,1fr);gap:6px}}
+
+/* perguntas */
+.faq{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:56px}
+.qs{border-top:1px solid var(--line)}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 4px;font:600 17px var(--f-body)}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";flex:none;width:12px;height:12px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s}
+details[open] summary::after{transform:rotate(225deg) translate(-2px,-2px)}
+details p{padding:0 4px 22px;color:var(--fg-2);max-width:60ch}
+@media (max-width:900px){.faq{grid-template-columns:minmax(0,1fr);gap:28px}}
+
+/* rodapé */
+footer{border-top:1px solid var(--line);padding-block:40px 48px;font-size:14px;color:var(--mute)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:24px 40px;align-items:center;justify-content:space-between}
+footer .logo{height:20px}
+.ph{background:color-mix(in srgb,var(--hivis) 35%,transparent);color:var(--fg);border-radius:4px;padding:1px 5px}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+/* História pela rolagem, em 3D sobre branco: a seção é alta e o quadro fica preso; a rolagem vira o tempo da cena (referência: United Carriers). */
+.story{position:relative;height:740vh;padding:0;background:#F4F3EF;color:#15161C}
+.st-pin{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
+#stc,.st-ov{position:absolute;inset:0;width:100%;height:100%;display:block}
+.st-ov{pointer-events:none}
+.st-hud{position:absolute;z-index:3;top:84px;left:max(20px,4vw);display:flex;gap:18px;font:500 12px var(--f-num);letter-spacing:.04em;color:#6B6D76;text-transform:uppercase}
+.st-hud span:first-child{color:#15161C}
+.st-osm{position:absolute;right:12px;bottom:10px;margin:0;font:500 10.5px var(--f-body);color:#6B6D76;transition:opacity .3s}
+.st-t{position:absolute;z-index:3;left:max(20px,4vw);top:24vh;max-width:min(540px,88vw);opacity:0;pointer-events:none;will-change:opacity,transform;background:rgba(244,243,239,.86);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:20px 24px 22px;margin-left:-24px;border-radius:18px}
+.st-t.on{pointer-events:auto}
+.st-t h2{font:800 clamp(34px,4.8vw,66px)/.98 var(--f-display);font-stretch:112%;letter-spacing:-.025em;margin:12px 0 14px;text-transform:uppercase;color:#15161C}
+.st-t h2 em{font-style:normal;color:#5B3DF5}
+.st-t p{font-size:17px;line-height:1.5;color:#45474F;max-width:440px;margin:0}
+.st-k{font:600 12px var(--f-num);letter-spacing:.08em;text-transform:uppercase;color:#5B3DF5}
+.st-top{top:17vh}
+.st-end{top:auto;bottom:14vh;max-width:min(860px,92vw)}
+.st-end h2{font-size:clamp(40px,6.6vw,96px)}
+.st-end .btn{margin-top:10px}
+.st-phone{position:absolute;z-index:3;right:max(20px,7vw);top:20vh;width:250px;padding:18px;border-radius:28px;background:#15161C;color:#fff;box-shadow:0 30px 60px -24px rgba(21,22,28,.5);display:grid;gap:9px;opacity:0;font-size:13px}
+.st-phone b{font:700 17px var(--f-body);margin-bottom:4px}
+.st-phone .ok{display:flex;gap:9px;align-items:center;color:#C6C7CE;opacity:.25;transform:translateX(-6px);transition:opacity .3s,transform .3s}
+.st-phone .ok::before{content:"";width:18px;height:18px;border-radius:50%;flex:none;background:#2B2D36}
+.st-phone .ok.on{opacity:1;transform:none}
+.st-phone .ok.on::before{background:#12A150 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='m5 9.5 2.6 2.5L13 6.5' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/18px no-repeat}
+.st-cards{position:absolute;z-index:3;left:0;bottom:5vh;display:flex;gap:14px;padding-left:100vw;will-change:transform;opacity:0}
+.st-cards div{width:250px;flex:none;display:grid;gap:8px;padding:18px 20px;border-radius:16px;background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 18px 40px -24px rgba(21,22,28,.35),0 0 0 1px rgba(21,22,28,.06)}
+.st-cards i{font:600 12px var(--f-num);color:#5B3DF5;font-style:normal}
+.st-cards b{font:800 21px/1.05 var(--f-display);font-stretch:112%;text-transform:uppercase;letter-spacing:-.01em}
+.st-cards span{font-size:14px;line-height:1.45;color:#45474F}
+.st-pins{position:absolute;inset:0;z-index:2;pointer-events:none}
+.st-pinl{position:absolute;left:0;top:0;opacity:0;transition:opacity .25s}
+.st-pinl i{position:absolute;left:-12px;top:-12px;width:24px;height:24px;border-radius:50%;background:#BDBCB5;box-shadow:0 0 0 3px #fff,0 6px 14px -4px rgba(21,22,28,.4);transition:background-color .25s}
+.st-pinl.done i{background:#5B3DF5 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='m5 9.5 2.6 2.5L13 6.5' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/18px no-repeat}
+.st-pinl span{position:absolute;left:20px;top:-15px;white-space:nowrap;padding:6px 10px;border-radius:8px;background:#fff;font:600 12px var(--f-num);color:#15161C;box-shadow:0 8px 20px -10px rgba(21,22,28,.4);opacity:0;transform:translateY(4px);transition:opacity .25s,transform .25s}
+.st-pinl.left span{left:auto;right:20px}
+.st-pinl.lab span{opacity:1;transform:none}
+.st-bill{position:absolute;z-index:3;right:max(20px,6vw);top:50%;width:min(430px,90vw);transform:translateY(-50%);background:#fff;border-radius:16px;box-shadow:0 40px 80px -30px rgba(21,22,28,.45),0 0 0 1px rgba(21,22,28,.06);overflow:hidden;opacity:0;color:#15161C}
+.sb-h{display:flex;justify-content:space-between;align-items:baseline;padding:14px 18px;border-bottom:1px solid #E2E1DC}
+.sb-h span{font:500 12px var(--f-num);color:#6B6D76}
+.sb-rows{display:grid}
+.sb-r{display:grid;grid-template-columns:1fr auto 104px;gap:10px;align-items:center;padding:0 0 0 18px;height:38px;border-bottom:1px solid #EEEDE8;font:500 12.5px var(--f-num);opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s}
+.sb-r.in{opacity:1;transform:none}
+.sb-r em{font-style:normal;color:#6B6D76;font-family:var(--f-body)}
+.sb-r s{text-decoration:none;align-self:stretch;display:grid;place-items:center;color:#fff;font:600 12px var(--f-body);background:#C9C8C2;transition:background-color .3s}
+.sb-r.ok s{background:color-mix(in srgb,#00C875 22%,#fff);color:#0E7A3C}
+.sb-r.bad s{background:#DF2F4A}
+.sb-f{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:#FFF7D6}
+.sb-f b{font:700 22px var(--f-num)}
+.st-bar{position:absolute;z-index:3;left:0;right:0;bottom:0;height:3px;background:rgba(21,22,28,.08)}
+.st-bar i{display:block;height:100%;width:100%;background:#5B3DF5;transform-origin:left;transform:scaleX(0)}
+/* sem WebGL: os textos viram uma lista simples */
+.st-static{height:auto}.st-static .st-pin{position:relative;height:auto;padding:88px 0;display:grid;gap:24px}
+.st-static .st-t{position:relative;inset:auto;opacity:1;margin:0 auto;max-width:720px}
+.st-static .st-hud,.st-static .st-osm,.st-static .st-phone,.st-static .st-cards,.st-static .st-bill,.st-static .st-bar{display:none}
+@media (max-width:760px){
+  .story{height:700vh}
+  .st-t{top:14vh;padding:16px 18px 18px;margin-left:-6px;max-width:calc(100vw - 28px)}.st-top{top:12vh}
+  .st-t p{font-size:15px}
+  .st-phone{top:auto;bottom:6vh;right:auto;left:20px;width:calc(100% - 40px);max-width:320px}
+  .st-bill{top:auto;bottom:4vh;transform:none;right:20px;left:20px;width:auto}
+  .sb-r{grid-template-columns:1fr 90px}.sb-r em{display:none}
+  .st-cards div{width:220px}
+  .st-hud{top:86px;gap:12px}
+  .st-end{bottom:10vh}
+  .st-short p{display:none}
+  .sb-r{height:34px}
+}
+</style>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a href="#top" aria-label="Kerbproof, back to top"><svg class="logo" role="img" aria-label="Kerbproof" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 627.11 92.42"><g transform="translate(0.00 1.05)"><g transform="translate(-11.148 -8.361) scale(1.39344)"><path style="fill:var(--logo-a)" d="M20.000 6.000 20.000 58.000 8.000 58.000 8.000 6.000Z"/><path style="fill:var(--logo-b)" d="M69.246 6.000 54.908 6.000 31.459 41.864 22.600 31.036 22.600 49.986 29.157 58.000 35.246 58.000Z"/></g><path style="fill:var(--logo-a)" d="M116.7018769059166 72.45886117516835V0.0H134.08910767292164V41.07882742529708L154.89606926933016 19.728258730925262H175.7376795433267L155.38335853249453 40.70084225643032L176.4221309415227 72.45886117516835H156.28355180747963L142.9464845699953 51.49745953180664L134.08910767292164 58.79126512459069V72.45886117516835Z M206.43113620295728 73.65886117516835Q196.56935535646127 73.65886117516835 189.43484270025954 70.72190366636462Q182.30033004405783 67.78494615756091 178.46023473232367 61.67190366636463Q174.62013942058948 55.558861175168346 174.62013942058948 46.104517461850534Q174.62013942058948 36.77894994130851 178.4111478580573 30.66682057584588Q182.2021562955251 24.554691210383247 189.17572279416592 21.541474970654257Q196.14928929280674 18.528258730925266 205.72160651989134 18.528258730925266Q215.48528724900436 18.528258730925266 222.31914551039773 21.463389988261703Q229.15300377179108 24.39852124559814 232.72209719165144 30.39625116343005Q236.2911906115118 36.39398108126196 236.2911906115118 45.65525960089788V49.51389231512181H192.49284894199639Q192.65824649775328 53.73350902438271 194.22204728488853 56.56218612167673Q195.78584807202378 59.39086321897075 198.86004830678974 60.7620020438024Q201.9342485415557 62.133140868634044 206.48167258354584 62.133140868634044Q209.05538736638735 62.133140868634044 211.26865934042922 61.55505588624149Q213.48193131447113 60.97697090384894 215.13921842350345 59.8904458745032Q216.79650553253575 58.80392084515746 217.7427501503718 57.256511938157715Q218.68899476820783 55.70910303115798 218.75473982103017 53.7722814334109H236.17744555868944Q236.17744555868944 58.46835506456064 234.06063633408638 62.176783760271015Q231.94382710948332 65.88521245598139 228.0108554875904 68.43673180970572Q224.07788386569746 70.98825116343005 218.602313583309 72.3235561692992Q213.1267433009206 73.65886117516835 206.43113620295728 73.65886117516835ZM192.59467519346367 40.138972643794155H218.13605617814213Q218.13605617814213 37.68309720360797 217.28391167768908 35.81928884897752Q216.43176717723603 33.95548049434707 214.85600698942324 32.66551352617433Q213.28024680161047 31.375546558001588 211.09661597926035 30.726633432267946Q208.91298515691022 30.077720306534303 206.25235622643388 30.077720306534303Q202.12850348873334 30.077720306534303 199.2294751106263 31.271117862291216Q196.33044673251925 32.46451541804813 194.69843159752884 34.71310753294959Q193.0664164625384 36.96169964785106 192.59467519346367 40.138972643794155Z M243.60187690591664 72.45886117516835V19.728258730925262H257.8096932422291L259.0248943469677 28.240887661401594H259.79897932936024Q261.14043538127646 25.272999130027394 263.2284976611834 23.06929846027513Q265.3165599410903 20.86559779052287 268.12455237359507 19.66975640406516Q270.9325448060998 18.473915017607453 274.2490037717911 18.473915017607453Q276.1623786250624 18.473915017607453 277.8011104347681 18.791216239728993Q279.43984224447377 19.108517461850532 280.580182174044 19.584946157560907V34.01622437333961H273.694307037715Q270.3688131483227 34.01622437333961 267.9605836654771 35.0018844437694Q265.5523541826315 35.98754451419919 264.0153003401924 37.8156040322597Q262.47824649775333 39.643663550320206 261.7336770853375 42.13833308011901Q260.98910767292165 44.63300260991781 260.98910767292165 47.675280259581115V72.45886117516835Z M319.5183579663791 73.65886117516835Q313.95086786073443 73.65886117516835 309.1413522907577 71.57281679209828Q304.331836720781 69.48677240902819 301.09949679121075 64.71965250293458H300.3254118088182L298.9859519731544 72.45886117516835H284.8301356368419V0.0282587309252591H302.21736640384694V25.542389118289094H302.9457950995573Q304.8598800819498 23.159424041990157 307.5417063334171 21.59837019955106Q310.2235325848844 20.037316357111962 313.4042870970758 19.282787544018614Q316.58504160926714 18.528258730925266 319.88178200836927 18.528258730925266Q327.03071303093975 18.528258730925266 332.4753447232625 21.50560433611689Q337.9199764155852 24.48294994130851 341.0005306930106 30.571079306771146Q344.081084970436 36.65920867223378 344.081084970436 46.05251746185053Q344.081084970436 55.45399621625239 341.00144381874424 61.57908309051875Q337.9218026670525 67.70416996478511 332.4095996704401 70.68151556997674Q326.89739667382776 73.65886117516835 319.5183579663791 73.65886117516835ZM314.2972590228259 60.40059518060506Q318.50704191312434 60.40059518060506 321.2012940984556 58.85710129121277Q323.8955462837868 57.313607401820484 325.17521770545943 54.398693254185645Q326.45488912713205 51.4837791065508 326.45488912713205 47.44560331421569V44.817257860952665Q326.45488912713205 40.75534079954281 325.17521770545943 37.8525560173706Q323.8955462837868 34.94977123519839 321.223209116063 33.36814798034347Q318.55087194833925 31.786524725488555 314.3410890580408 31.786524725488555Q311.23966879979827 31.786524725488555 308.93272918783134 32.77992228124547Q306.6257895758645 33.77331983700238 305.1114193763134 35.554599378539486Q303.59704917676237 37.33587892007659 302.85494905937935 39.83448238622087Q302.1128489419964 42.33308585236516 302.1128489419964 45.36775640406516V46.94076105778537Q302.1128489419964 50.95571304289628 303.4283060158138 53.99135900023684Q304.7437630896312 57.027004957577404 307.4631021492288 58.713800069091235Q310.18244120882645 60.40059518060506 314.2972590228259 60.40059518060506Z"/><path style="fill:var(--logo-b)" d="M351.4301356368419 91.36992054130026V19.728258730925262H365.5859519731544L367.0362729839866 27.46746740315904H367.8103579663791Q371.09921535779984 22.643830035214897 375.82504160926715 20.58604438307008Q380.55086786073446 18.528258730925266 386.1183579663791 18.528258730925266Q393.4973966738278 18.528258730925266 399.00959967044014 21.50560433611689Q404.5218026670525 24.48294994130851 407.60144381874426 30.597079306771146Q410.681084970436 36.71120867223378 410.681084970436 46.134602444243086Q410.681084970436 55.48225494717766 407.6005306930106 61.59321245598139Q404.51997641558523 67.70416996478511 399.0753447232625 70.68151556997674Q393.6307130309398 73.65886117516835 386.4817820083693 73.65886117516835Q383.18504160926716 73.65886117516835 380.0042870970758 72.93259109300027Q376.82353258488445 72.20632101083218 374.1417063334171 70.64526716839308Q371.45988008194985 69.08421332595398 369.5457950995573 66.67298951872979H368.81736640384696V91.36992054130026ZM380.9410890580408 60.40059518060506Q385.1508719483393 60.40059518060506 387.823209116063 58.81897192575014Q390.49554628378684 57.23734867089522 391.77521770545945 54.322434523260384Q393.05488912713207 51.40752037562554 393.05488912713207 47.41734458329043V44.7889991300274Q393.05488912713207 40.72708206861755 391.77521770545945 37.80029728644534Q390.49554628378684 34.87351250427313 387.8012940984556 33.33001861488084Q385.10704191312436 31.786524725488555 380.89725902282595 31.786524725488555Q376.78244120882647 31.786524725488555 374.0631021492288 33.47331983700238Q371.34376308963124 35.16011494851621 370.0283060158138 38.194589049197866Q368.7128489419964 41.22906314987952 368.7128489419964 45.293841386457714V46.843104771103185Q368.7128489419964 49.85586030519575 369.4549490593794 52.35355064560639Q370.1970491767624 54.851240986017025 371.7114193763134 56.63252052755413Q373.2257895758645 58.41380006909123 375.53272918783136 59.407197624848145Q377.8396687997983 60.40059518060506 380.9410890580408 60.40059518060506Z M418.0018769059166 72.45886117516835V19.728258730925262H432.2096932422291L433.4248943469677 28.240887661401594H434.1989793293602Q435.54043538127644 25.272999130027394 437.62849766118336 23.06929846027513Q439.7165599410903 20.86559779052287 442.52455237359504 19.66975640406516Q445.3325448060998 18.473915017607453 448.64900377179106 18.473915017607453Q450.56237862506237 18.473915017607453 452.20111043476805 18.791216239728993Q453.83984224447374 19.108517461850532 454.980182174044 19.584946157560907V34.01622437333961H448.094307037715Q444.7688131483227 34.01622437333961 442.36058366547707 35.0018844437694Q439.9523541826315 35.98754451419919 438.4153003401924 37.8156040322597Q436.8782464977533 39.643663550320206 436.13367708533747 42.13833308011901Q435.3891076729216 44.63300260991781 435.3891076729216 47.675280259581115V72.45886117516835Z M486.88962165488175 73.65886117516835Q477.2479068720403 73.65886117516835 470.23781534405373 70.62164493543936Q463.2277238160671 67.58442869571037 459.4239316183283 61.45934182144401Q455.62013942058945 55.334254947177655 455.62013942058945 46.08260244424308Q455.62013942058945 36.75703492370106 459.4239316183283 30.655863067042155Q463.2277238160671 24.554691210383247 470.23781534405373 21.541474970654257Q477.2479068720403 18.528258730925266 486.88962165488175 18.528258730925266Q496.555077706798 18.528258730925266 503.56742796570984 21.541474970654257Q510.57977822462163 24.554691210383247 514.3835704223604 30.655863067042155Q518.1873626200993 36.75703492370106 518.1873626200993 46.08260244424308Q518.1873626200993 55.334254947177655 514.3835704223604 61.45934182144401Q510.57977822462163 67.58442869571037 503.56742796570984 70.62164493543936Q496.555077706798 73.65886117516835 486.88962165488175 73.65886117516835ZM486.88962165488175 61.44691619143724Q491.5236632761054 61.44691619143724 494.5288729702404 59.7773373196524Q497.5340826643754 58.10775844786756 498.9735397381928 54.98958746118126Q500.4129968120102 51.87141647449495 500.4129968120102 47.54829452459893V44.6451690948125Q500.4129968120102 40.30013212730904 498.9735397381928 37.17878928396382Q497.5340826643754 34.057446440618605 494.5288729702404 32.39882507763749Q491.5236632761054 30.740203714656374 486.88962165488175 30.740203714656374Q482.2555800336581 30.740203714656374 479.2644997049857 32.39882507763749Q476.2734193763134 34.057446440618605 474.833962302496 37.17878928396382Q473.39450522867855 40.30013212730904 473.39450522867855 44.6451690948125V47.54829452459893Q473.39450522867855 51.87141647449495 474.833962302496 54.98958746118126Q476.2734193763134 58.10775844786756 479.2644997049857 59.7773373196524Q482.2555800336581 61.44691619143724 486.88962165488175 61.44691619143724Z M554.3896216548818 73.65886117516835Q544.7479068720403 73.65886117516835 537.7378153440537 70.62164493543936Q530.7277238160672 67.58442869571037 526.9239316183284 61.45934182144401Q523.1201394205896 55.334254947177655 523.1201394205896 46.08260244424308Q523.1201394205896 36.75703492370106 526.9239316183284 30.655863067042155Q530.7277238160672 24.554691210383247 537.7378153440537 21.541474970654257Q544.7479068720403 18.528258730925266 554.3896216548818 18.528258730925266Q564.055077706798 18.528258730925266 571.0674279657098 21.541474970654257Q578.0797782246217 24.554691210383247 581.8835704223604 30.655863067042155Q585.6873626200993 36.75703492370106 585.6873626200993 46.08260244424308Q585.6873626200993 55.334254947177655 581.8835704223604 61.45934182144401Q578.0797782246217 67.58442869571037 571.0674279657098 70.62164493543936Q564.055077706798 73.65886117516835 554.3896216548818 73.65886117516835ZM554.3896216548818 61.44691619143724Q559.0236632761055 61.44691619143724 562.0288729702404 59.7773373196524Q565.0340826643754 58.10775844786756 566.4735397381928 54.98958746118126Q567.9129968120103 51.87141647449495 567.9129968120103 47.54829452459893V44.6451690948125Q567.9129968120103 40.30013212730904 566.4735397381928 37.17878928396382Q565.0340826643754 34.057446440618605 562.0288729702404 32.39882507763749Q559.0236632761055 30.740203714656374 554.3896216548818 30.740203714656374Q549.7555800336581 30.740203714656374 546.7644997049858 32.39882507763749Q543.7734193763134 34.057446440618605 542.333962302496 37.17878928396382Q540.8945052286787 40.30013212730904 540.8945052286787 44.6451690948125V47.54829452459893Q540.8945052286787 51.87141647449495 542.333962302496 54.98958746118126Q543.7734193763134 58.10775844786756 546.7644997049858 59.7773373196524Q549.7555800336581 61.44691619143724 554.3896216548818 61.44691619143724Z M596.9781205018515 72.45886117516835V31.940203714656377H587.7160430869542V19.728258730925262H596.9781205018515V16.142621059123925Q596.9781205018515 10.307348367038024 599.1293763190017 6.492380528892685Q601.280632136152 2.677412690747346 605.3875734880642 0.8112757577895024Q609.4945148399762 -1.054861175168341 615.284488353743 -1.054861175168341Q617.1027433009207 -1.054861175168341 619.2635449580284 -0.8276893185094352Q621.4243466151363 -0.6005174618505293 623.5036213510245 -0.22334560519162494Q625.5828960869129 0.15382625146727946 627.112182174044 0.652000000000001V11.15708380856276H621.4655570273153Q617.4896911984267 11.15708380856276 615.9275212336416 12.368215065899193Q614.3653512688566 13.579346323235626 614.3653512688566 16.35481372639468V19.728258730925262H627.112182174044V31.940203714656377H614.3653512688566V72.45886117516835Z"/></g></svg></a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#leaks">Where money goes</a>
+      <a href="#how">How it works</a>
+      <a href="#faq">Questions</a>
+    </nav>
+    <a class="btn btn-p" href="#check">Get a free check</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" aria-labelledby="h1">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow"><i></i>For Amazon DSP, DPD and Evri subcontractors</span>
+        <h1 id="h1">Find the drops you delivered <em>but never got paid for.</em></h1>
+        <p class="sub">Upload your carrier statement and your delivery report. Kerbproof matches every drop and shows you what's missing, with the proof attached.</p>
+        <div class="ctas">
+          <a class="btn btn-p" href="#check">Check last month for free
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h11m-4-5 5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <a class="btn btn-g" href="#how">See how it works</a>
+        </div>
+        <p class="fine">CSV or Excel files you already have. No logins to your carrier's systems.</p>
+      </div>
+
+      <div class="panel" id="panel" aria-label="Example reconciliation for one depot in October">
+        <div class="p-head">
+          <b>October check</b><span class="p-tag">Depot DXM4</span>
+          <span class="p-state" id="pState"><i></i><span id="pStateTxt">Done in 4 min</span></span>
+        </div>
+        <div class="p-files">
+          <div class="p-file"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 1.5h5L12.5 5v9.5h-8.5z" stroke="currentColor" stroke-width="1.3"/></svg><span>delivery-report-oct.xlsx</span></div>
+          <span class="p-x">vs</span>
+          <div class="p-file"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 1.5h5L12.5 5v9.5h-8.5z" stroke="currentColor" stroke-width="1.3"/></svg><span>carrier-statement-wk40-44.csv</span></div>
+        </div>
+        <div class="p-kpis">
+          <div class="p-k found"><div class="l">Delivered, not paid</div><div class="v" id="kFound">£2,418.60</div></div>
+          <div class="p-k"><div class="l">Drops matched</div><div class="v" id="kMatched">18,365</div></div>
+          <div class="p-k"><div class="l">Missing</div><div class="v" id="kMissing">37</div></div>
+        </div>
+        <div class="p-rows" id="pRows" aria-live="off">
+          <div class="p-row h"><span>Tracking ID</span><span class="drv">Driver</span><span>Status</span><span class="r">Paid</span></div>
+          <div class="p-row miss"><span class="id">TBA318225560982</span><span class="drv">A. Ribeiro</span><span><span class="chip bad">Not paid</span></span><span class="money">£0.00</span></div>
+          <div class="p-row"><span class="id">TBA318225559310</span><span class="drv">A. Ribeiro</span><span><span class="chip ok">Matched</span></span><span class="money">£1.10</span></div>
+          <div class="p-row"><span class="id">TBA318225558477</span><span class="drv">T. Reilly</span><span><span class="chip ok">Matched</span></span><span class="money">£1.10</span></div>
+          <div class="p-row miss"><span class="id">TBA318211903114</span><span class="drv">P. Shah</span><span><span class="chip bad">Not paid</span></span><span class="money">£0.00</span></div>
+          <div class="p-row"><span class="id">TBA318211902651</span><span class="drv">P. Shah</span><span><span class="chip ok">Matched</span></span><span class="money">£1.10</span></div>
+          <div class="p-row"><span class="id">TBA318204556001</span><span class="drv">D. Okafor</span><span><span class="chip ok">Matched</span></span><span class="money">£1.10</span></div>
+        </div>
+        <div class="p-foot">
+          <a class="btn" href="#pack">Build dispute pack (37)</a>
+          <span class="p-note">Example data</span>
+          <button class="replay" id="replay" type="button">Replay</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- história: um dia de entrega em 3D, contado pela rolagem -->
+  <section class="story" id="story" aria-labelledby="h-story">
+    <div class="st-pin">
+      <div class="st-hud" aria-hidden="true"><span id="stClock">06:58</span><span id="stSpeed">0 mph</span><span id="stStop">Depot DXM4</span></div>
+      <p class="st-osm" id="stOsm">Streets © OpenStreetMap contributors</p>
+
+      <div class="st-t" data-in="0" data-out=".09">
+        <span class="st-k">06:58 · Maidstone, Kent</span>
+        <h2 id="h-story">Every van. Every stop. <em>Every penny.</em></h2>
+        <p>Kerbproof runs the delivery day for subcontractors: drivers, vans, routes, pay, and the money your carrier owes you. Scroll to ride along.</p>
+      </div>
+      <div class="st-t" data-in=".17" data-out=".3">
+        <span class="st-k">07:12 · Loading bay</span>
+        <h2>Clock-in, with proof.</h2>
+        <p>Location on for the shift only, eight van photos, and the van and route matched to the driver before the first drop.</p>
+      </div>
+      <div class="st-phone" data-in=".2" data-out=".3" aria-hidden="true">
+        <b>Good morning, Ana</b>
+        <span class="ok" data-at=".21">Clocked in · 07:12</span>
+        <span class="ok" data-at=".225">Location on until you finish</span>
+        <span class="ok" data-at=".24">8 inspection photos</span>
+        <span class="ok" data-at=".255">Van KX71 WRD · route DX14</span>
+      </div>
+      <div class="st-t st-top" data-in=".31" data-out=".5">
+        <span class="st-k">On the road</span>
+        <h2>One system for the whole day.</h2>
+      </div>
+      <div class="st-cards" id="stCards" aria-hidden="true">
+        <div><i>01</i><b>Live map</b><span>Every van, from the driver's phone, only while they're on shift.</span></div>
+        <div><i>02</i><b>Shift ledger</b><span>Who had which van, on which route, minute by minute.</span></div>
+        <div><i>03</i><b>Drivers</b><span>Documents checked by AI, chat in the driver's own language.</span></div>
+        <div><i>04</i><b>Fleet &amp; MOT</b><span>Defects, repairs, MOT, tax and insurance on one board.</span></div>
+        <div><i>05</i><b>Pay &amp; deductions</b><span>Self-billed pay, with the evidence behind every deduction.</span></div>
+        <div><i>06</i><b>Statement check</b><span>Your carrier statement against what was really delivered.</span></div>
+      </div>
+      <div class="st-t" data-in=".56" data-out=".74">
+        <span class="st-k">Stop by stop</span>
+        <h2>Every stop leaves a receipt.</h2>
+        <p>Time, GPS and photo for each drop, saved with the shift. Fines, damage and missing parcels land on the right driver by themselves.</p>
+      </div>
+      <div class="st-t st-short" data-in=".77" data-out=".905">
+        <span class="st-k">Sunday · statement in</span>
+        <h2>Then the carrier pays. <em>Or doesn't.</em></h2>
+        <p>Kerbproof checks every line of the statement against what was delivered, and builds the dispute for you.</p>
+      </div>
+      <div class="st-bill" id="stBill" aria-hidden="true">
+        <div class="sb-h"><b>Week 44 statement</b><span>Evri · DXM4</span></div>
+        <div class="sb-rows" id="sbRows"></div>
+        <div class="sb-f"><span>Delivered, not paid this month</span><b id="sbSum">£0.00</b></div>
+      </div>
+      <div class="st-t st-end" data-in=".92" data-out="2">
+        <span class="st-k">One depot, one month</span>
+        <h2>£2,418.60 <em>found and claimed.</em></h2>
+        <a class="btn btn-p" href="#check">Check last month for free
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h11m-4-5 5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+      <div class="st-bar" aria-hidden="true"><i id="stBar"></i></div>
+    </div>
+  </section>
+
+  <section class="band" id="leaks" aria-labelledby="h-leaks">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="h-leaks">Where the money goes missing</h2>
+        <p>Every week the statement says one number and your drivers did another. The gap is usually small per drop and large per month. These are the four places it hides.</p>
+      </div>
+      <div class="leaks">
+        <div class="leak"><span class="tag">Not on statement</span><div><h3>Delivered drops that never show up</h3><p>The parcel was scanned as delivered, the photo is on the driver's phone, and the statement doesn't list it.</p><span class="eg">18,402 delivered · 18,365 paid</span></div></div>
+        <div class="leak"><span class="tag">Wrong status</span><div><h3>Delivered, but marked as failed</h3><p>A drop logged as an attempt or a return gets paid at the lower rate, or not at all.</p><span class="eg">DELIVERED → ATTEMPTED</span></div></div>
+        <div class="leak"><span class="tag">Old rate</span><div><h3>Rate changes applied late</h3><p>Your new route rate started on the 1st. Part of the month was still paid at the old one.</p><span class="eg">£165.00 expected · £158.00 paid</span></div></div>
+        <div class="leak"><span class="tag">Missing extras</span><div><h3>Rescues and extras not credited</h3><p>Rescue runs, extra stops and bonuses agreed by message that never reach the statement.</p><span class="eg">Rescue 21 Oct · £40.00 · not paid</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" aria-labelledby="h-how">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="h-how">Two files in. The gap out.</h2>
+        <p>No integration, no new app for your drivers. You export what you already have and we do the matching.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="n">Step 1</span>
+          <h3>Send two files</h3>
+          <p>Your carrier's statement for the period and your own delivery or route report. CSV or Excel, as they come.</p>
+          <div class="art">
+            <div class="file"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 1.5h5L12.5 5v9.5h-8.5z" stroke="currentColor" stroke-width="1.3"/></svg><span>carrier-statement-wk40-44.csv</span></div>
+            <div class="file"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 1.5h5L12.5 5v9.5h-8.5z" stroke="currentColor" stroke-width="1.3"/></svg><span>delivery-report-oct.xlsx</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <span class="n">Step 2</span>
+          <h3>Every drop gets matched</h3>
+          <p>By tracking ID first, then by route and date. Anything unclear goes to a person, never to a guess.</p>
+          <div class="art">
+            <div class="match"><span>TBA318204556001</span><b>✓</b><span>£1.10 paid</span></div>
+            <div class="match x"><span>TBA318225560982</span><b>✗</b><span>not listed</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <span class="n">Step 3</span>
+          <h3>You see the gap, with proof</h3>
+          <p>A list of every drop that wasn't paid, what it should have paid, and the evidence to claim it.</p>
+          <div class="art">
+            <div class="gap"><span class="num">£2,418.60</span><small>37 drops</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pack" id="pack" aria-labelledby="h-pack">
+    <div class="wrap">
+      <div>
+        <h2 id="h-pack">A dispute pack your carrier can't wave away</h2>
+        <p style="font-size:18px;color:var(--fg-2);margin-top:16px">Finding the gap is half the job. Kerbproof puts each missing drop in a single file, ready to send before the dispute window closes.</p>
+        <ul class="ticks">
+          <li><svg viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="6" fill="var(--accent-soft)"/><path d="M6.5 11.5 9.5 14.5 15.5 7.5" fill="none" stroke="var(--accent-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>Tracking ID, date and route</b> for every drop</span></li>
+          <li><svg viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="6" fill="var(--accent-soft)"/><path d="M6.5 11.5 9.5 14.5 15.5 7.5" fill="none" stroke="var(--accent-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>Delivery scan time and photo reference</b> from your report</span></li>
+          <li><svg viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="6" fill="var(--accent-soft)"/><path d="M6.5 11.5 9.5 14.5 15.5 7.5" fill="none" stroke="var(--accent-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>The rate it should have paid</b>, from your contract</span></li>
+          <li><svg viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="6" fill="var(--accent-soft)"/><path d="M6.5 11.5 9.5 14.5 15.5 7.5" fill="none" stroke="var(--accent-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>The total to claim</b>, so the number speaks first</span></li>
+        </ul>
+      </div>
+      <div class="doc" aria-label="Example dispute pack">
+        <div class="doc-h">
+          <div><div class="t">Payment dispute · October 2026</div><div class="m">Northgate Couriers Ltd · Depot DXM4<br>Statement weeks 40–44 · 37 drops</div></div>
+          <div class="total"><span class="num">£2,418.60</span><small>to claim</small></div>
+        </div>
+        <div class="doc-tbl">
+          <table>
+            <thead><tr><th>Tracking ID</th><th>Delivered</th><th>Evidence</th><th class="r">Owed</th></tr></thead>
+            <tbody>
+              <tr><td class="num" style="text-align:left">TBA318204556001</td><td>14 Oct 14:07</td><td><span class="ev"><span>scan</span><span>photo</span><span>GPS</span></span></td><td class="num">£165.00</td></tr>
+              <tr><td class="num" style="text-align:left">TBA318211903114</td><td>21 Oct 11:52</td><td><span class="ev"><span>scan</span><span>photo</span></span></td><td class="num">£165.00</td></tr>
+              <tr><td class="num" style="text-align:left">TBA318190027465</td><td>08 Oct 16:31</td><td><span class="ev"><span>rate card v3</span></span></td><td class="num">£17.50</td></tr>
+              <tr><td class="num" style="text-align:left">TBA318225560982</td><td>28 Oct 09:18</td><td><span class="ev"><span>scan</span><span>photo</span><span>GPS</span></span></td><td class="num">£12.40</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="doc-f"><span>+ 33 more drops</span><span>Example data</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band check" id="check" aria-labelledby="h-check">
+    <div class="wrap">
+      <div>
+        <h2 id="h-check">Check last month, free</h2>
+        <p style="font-size:18px;color:var(--band-mute);margin-top:16px">Tell us who you are. We'll reply with how to send the two files, then show you the result on a short call.</p>
+        <dl class="promise">
+          <div><dt>Cost</dt><p><b>Nothing.</b> If we find no gap, you've confirmed you were paid right.</p></div>
+          <div><dt>Your carrier</dt><p><b>Never contacted by us.</b> You decide what to do with the result.</p></div>
+          <div><dt>Your files</dt><p><b>Used only for your check.</b> Ask and we delete them.</p></div>
+          <div><dt>Time</dt><p><b>About 10 minutes of yours.</b> Exporting two files and a call.</p></div>
+        </dl>
+      </div>
+
+      <div id="formWrap">
+        <form id="form" novalidate aria-labelledby="h-check">
+          <div class="row2">
+            <div class="field"><label for="f-name">Your name</label><input id="f-name" name="name" autocomplete="name" required><span class="msg" id="m-name"></span></div>
+            <div class="field"><label for="f-company">Company</label><input id="f-company" name="company" autocomplete="organization" required><span class="msg" id="m-company"></span></div>
+          </div>
+          <div class="field"><label for="f-email">Work email</label><input id="f-email" name="email" type="email" autocomplete="email" inputmode="email" required><span class="msg" id="m-email"></span></div>
+          <div class="row2">
+            <div class="field"><label for="f-network">Main network</label>
+              <select id="f-network" name="network" required>
+                <option value="">Choose one</option><option>Amazon (DSP)</option><option>DPD</option><option>Evri</option><option>Yodel</option><option>DHL</option><option>Royal Mail</option><option>Other</option>
+              </select><span class="msg" id="m-network"></span></div>
+            <div class="field"><label for="f-vans">Vans on the road</label>
+              <select id="f-vans" name="vans" required>
+                <option value="">Choose one</option><option>1–10</option><option>11–25</option><option>26–50</option><option>51–100</option><option>More than 100</option>
+              </select><span class="msg" id="m-vans"></span></div>
+          </div>
+          <div class="field"><label for="f-phone">Phone <span class="opt">(optional)</span></label><input id="f-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel"></div>
+          <label class="consent" for="f-consent"><input id="f-consent" type="checkbox" name="consent"><span>Send me occasional emails about Kerbproof. You can stop them at any time.</span></label>
+          <button class="btn btn-p" id="submit" type="submit">Request my free check</button>
+          <p class="form-note">We only use these details to arrange your check. Preview build: requests are not sent yet.</p>
+        </form>
+        <div class="done" id="done" hidden tabindex="-1">
+          <div class="badge"><svg class="" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 61.25 52.00"><g transform="translate(-8.000 -6.000) scale(1.00000)"><path fill="#FFFFFF" d="M20.000 6.000 20.000 58.000 8.000 58.000 8.000 6.000Z"/><path fill="#15161C" d="M69.246 6.000 54.908 6.000 31.459 41.864 22.600 31.036 22.600 49.986 29.157 58.000 35.246 58.000Z"/></g></svg></div>
+          <h3 id="doneTitle">Request received</h3>
+          <p id="doneTxt">We'll email you within one working day with how to send last month's files.</p>
+          <button class="btn btn-g" id="again" type="button" style="justify-self:start">Send another request</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" aria-labelledby="h-faq">
+    <div class="wrap faq">
+      <div class="sec-head"><h2 id="h-faq">Questions owners ask</h2><p>Short answers. If yours isn't here, ask it in the form.</p></div>
+      <div class="qs">
+        <details><summary>Do I need to connect Kerbproof to my carrier's systems?</summary><p>No. You export the statement and your delivery report as you normally would and send the files. Nothing logs into your carrier's portal.</p></details>
+        <details><summary>Which files do you need?</summary><p>The payment or settlement statement for the period, and your own record of what was delivered: a route report, a delivery export or the spreadsheet you already keep. CSV or Excel is fine.</p></details>
+        <details><summary>Will my carrier know I used it?</summary><p>No. We never contact your carrier. If there's a gap, the dispute pack is yours to send, through your normal channel.</p></details>
+        <details><summary>What if you find nothing?</summary><p>Then you know you were paid correctly for that month, and it cost you nothing to find out.</p></details>
+        <details><summary>What does it cost after the free check?</summary><p>We agree it with you after you've seen your result. The first month is free either way.</p></details>
+        <details><summary>Is this only for Amazon DSPs?</summary><p>No. It works with any network that sends you a statement you can export. Amazon, DPD and Evri are where we start.</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <svg class="logo" role="img" aria-label="Kerbproof" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 627.11 92.42"><g transform="translate(0.00 1.05)"><g transform="translate(-11.148 -8.361) scale(1.39344)"><path style="fill:var(--logo-a)" d="M20.000 6.000 20.000 58.000 8.000 58.000 8.000 6.000Z"/><path style="fill:var(--logo-b)" d="M69.246 6.000 54.908 6.000 31.459 41.864 22.600 31.036 22.600 49.986 29.157 58.000 35.246 58.000Z"/></g><path style="fill:var(--logo-a)" d="M116.7018769059166 72.45886117516835V0.0H134.08910767292164V41.07882742529708L154.89606926933016 19.728258730925262H175.7376795433267L155.38335853249453 40.70084225643032L176.4221309415227 72.45886117516835H156.28355180747963L142.9464845699953 51.49745953180664L134.08910767292164 58.79126512459069V72.45886117516835Z M206.43113620295728 73.65886117516835Q196.56935535646127 73.65886117516835 189.43484270025954 70.72190366636462Q182.30033004405783 67.78494615756091 178.46023473232367 61.67190366636463Q174.62013942058948 55.558861175168346 174.62013942058948 46.104517461850534Q174.62013942058948 36.77894994130851 178.4111478580573 30.66682057584588Q182.2021562955251 24.554691210383247 189.17572279416592 21.541474970654257Q196.14928929280674 18.528258730925266 205.72160651989134 18.528258730925266Q215.48528724900436 18.528258730925266 222.31914551039773 21.463389988261703Q229.15300377179108 24.39852124559814 232.72209719165144 30.39625116343005Q236.2911906115118 36.39398108126196 236.2911906115118 45.65525960089788V49.51389231512181H192.49284894199639Q192.65824649775328 53.73350902438271 194.22204728488853 56.56218612167673Q195.78584807202378 59.39086321897075 198.86004830678974 60.7620020438024Q201.9342485415557 62.133140868634044 206.48167258354584 62.133140868634044Q209.05538736638735 62.133140868634044 211.26865934042922 61.55505588624149Q213.48193131447113 60.97697090384894 215.13921842350345 59.8904458745032Q216.79650553253575 58.80392084515746 217.7427501503718 57.256511938157715Q218.68899476820783 55.70910303115798 218.75473982103017 53.7722814334109H236.17744555868944Q236.17744555868944 58.46835506456064 234.06063633408638 62.176783760271015Q231.94382710948332 65.88521245598139 228.0108554875904 68.43673180970572Q224.07788386569746 70.98825116343005 218.602313583309 72.3235561692992Q213.1267433009206 73.65886117516835 206.43113620295728 73.65886117516835ZM192.59467519346367 40.138972643794155H218.13605617814213Q218.13605617814213 37.68309720360797 217.28391167768908 35.81928884897752Q216.43176717723603 33.95548049434707 214.85600698942324 32.66551352617433Q213.28024680161047 31.375546558001588 211.09661597926035 30.726633432267946Q208.91298515691022 30.077720306534303 206.25235622643388 30.077720306534303Q202.12850348873334 30.077720306534303 199.2294751106263 31.271117862291216Q196.33044673251925 32.46451541804813 194.69843159752884 34.71310753294959Q193.0664164625384 36.96169964785106 192.59467519346367 40.138972643794155Z M243.60187690591664 72.45886117516835V19.728258730925262H257.8096932422291L259.0248943469677 28.240887661401594H259.79897932936024Q261.14043538127646 25.272999130027394 263.2284976611834 23.06929846027513Q265.3165599410903 20.86559779052287 268.12455237359507 19.66975640406516Q270.9325448060998 18.473915017607453 274.2490037717911 18.473915017607453Q276.1623786250624 18.473915017607453 277.8011104347681 18.791216239728993Q279.43984224447377 19.108517461850532 280.580182174044 19.584946157560907V34.01622437333961H273.694307037715Q270.3688131483227 34.01622437333961 267.9605836654771 35.0018844437694Q265.5523541826315 35.98754451419919 264.0153003401924 37.8156040322597Q262.47824649775333 39.643663550320206 261.7336770853375 42.13833308011901Q260.98910767292165 44.63300260991781 260.98910767292165 47.675280259581115V72.45886117516835Z M319.5183579663791 73.65886117516835Q313.95086786073443 73.65886117516835 309.1413522907577 71.57281679209828Q304.331836720781 69.48677240902819 301.09949679121075 64.71965250293458H300.3254118088182L298.9859519731544 72.45886117516835H284.8301356368419V0.0282587309252591H302.21736640384694V25.542389118289094H302.9457950995573Q304.8598800819498 23.159424041990157 307.5417063334171 21.59837019955106Q310.2235325848844 20.037316357111962 313.4042870970758 19.282787544018614Q316.58504160926714 18.528258730925266 319.88178200836927 18.528258730925266Q327.03071303093975 18.528258730925266 332.4753447232625 21.50560433611689Q337.9199764155852 24.48294994130851 341.0005306930106 30.571079306771146Q344.081084970436 36.65920867223378 344.081084970436 46.05251746185053Q344.081084970436 55.45399621625239 341.00144381874424 61.57908309051875Q337.9218026670525 67.70416996478511 332.4095996704401 70.68151556997674Q326.89739667382776 73.65886117516835 319.5183579663791 73.65886117516835ZM314.2972590228259 60.40059518060506Q318.50704191312434 60.40059518060506 321.2012940984556 58.85710129121277Q323.8955462837868 57.313607401820484 325.17521770545943 54.398693254185645Q326.45488912713205 51.4837791065508 326.45488912713205 47.44560331421569V44.817257860952665Q326.45488912713205 40.75534079954281 325.17521770545943 37.8525560173706Q323.8955462837868 34.94977123519839 321.223209116063 33.36814798034347Q318.55087194833925 31.786524725488555 314.3410890580408 31.786524725488555Q311.23966879979827 31.786524725488555 308.93272918783134 32.77992228124547Q306.6257895758645 33.77331983700238 305.1114193763134 35.554599378539486Q303.59704917676237 37.33587892007659 302.85494905937935 39.83448238622087Q302.1128489419964 42.33308585236516 302.1128489419964 45.36775640406516V46.94076105778537Q302.1128489419964 50.95571304289628 303.4283060158138 53.99135900023684Q304.7437630896312 57.027004957577404 307.4631021492288 58.713800069091235Q310.18244120882645 60.40059518060506 314.2972590228259 60.40059518060506Z"/><path style="fill:var(--logo-b)" d="M351.4301356368419 91.36992054130026V19.728258730925262H365.5859519731544L367.0362729839866 27.46746740315904H367.8103579663791Q371.09921535779984 22.643830035214897 375.82504160926715 20.58604438307008Q380.55086786073446 18.528258730925266 386.1183579663791 18.528258730925266Q393.4973966738278 18.528258730925266 399.00959967044014 21.50560433611689Q404.5218026670525 24.48294994130851 407.60144381874426 30.597079306771146Q410.681084970436 36.71120867223378 410.681084970436 46.134602444243086Q410.681084970436 55.48225494717766 407.6005306930106 61.59321245598139Q404.51997641558523 67.70416996478511 399.0753447232625 70.68151556997674Q393.6307130309398 73.65886117516835 386.4817820083693 73.65886117516835Q383.18504160926716 73.65886117516835 380.0042870970758 72.93259109300027Q376.82353258488445 72.20632101083218 374.1417063334171 70.64526716839308Q371.45988008194985 69.08421332595398 369.5457950995573 66.67298951872979H368.81736640384696V91.36992054130026ZM380.9410890580408 60.40059518060506Q385.1508719483393 60.40059518060506 387.823209116063 58.81897192575014Q390.49554628378684 57.23734867089522 391.77521770545945 54.322434523260384Q393.05488912713207 51.40752037562554 393.05488912713207 47.41734458329043V44.7889991300274Q393.05488912713207 40.72708206861755 391.77521770545945 37.80029728644534Q390.49554628378684 34.87351250427313 387.8012940984556 33.33001861488084Q385.10704191312436 31.786524725488555 380.89725902282595 31.786524725488555Q376.78244120882647 31.786524725488555 374.0631021492288 33.47331983700238Q371.34376308963124 35.16011494851621 370.0283060158138 38.194589049197866Q368.7128489419964 41.22906314987952 368.7128489419964 45.293841386457714V46.843104771103185Q368.7128489419964 49.85586030519575 369.4549490593794 52.35355064560639Q370.1970491767624 54.851240986017025 371.7114193763134 56.63252052755413Q373.2257895758645 58.41380006909123 375.53272918783136 59.407197624848145Q377.8396687997983 60.40059518060506 380.9410890580408 60.40059518060506Z M418.0018769059166 72.45886117516835V19.728258730925262H432.2096932422291L433.4248943469677 28.240887661401594H434.1989793293602Q435.54043538127644 25.272999130027394 437.62849766118336 23.06929846027513Q439.7165599410903 20.86559779052287 442.52455237359504 19.66975640406516Q445.3325448060998 18.473915017607453 448.64900377179106 18.473915017607453Q450.56237862506237 18.473915017607453 452.20111043476805 18.791216239728993Q453.83984224447374 19.108517461850532 454.980182174044 19.584946157560907V34.01622437333961H448.094307037715Q444.7688131483227 34.01622437333961 442.36058366547707 35.0018844437694Q439.9523541826315 35.98754451419919 438.4153003401924 37.8156040322597Q436.8782464977533 39.643663550320206 436.13367708533747 42.13833308011901Q435.3891076729216 44.63300260991781 435.3891076729216 47.675280259581115V72.45886117516835Z M486.88962165488175 73.65886117516835Q477.2479068720403 73.65886117516835 470.23781534405373 70.62164493543936Q463.2277238160671 67.58442869571037 459.4239316183283 61.45934182144401Q455.62013942058945 55.334254947177655 455.62013942058945 46.08260244424308Q455.62013942058945 36.75703492370106 459.4239316183283 30.655863067042155Q463.2277238160671 24.554691210383247 470.23781534405373 21.541474970654257Q477.2479068720403 18.528258730925266 486.88962165488175 18.528258730925266Q496.555077706798 18.528258730925266 503.56742796570984 21.541474970654257Q510.57977822462163 24.554691210383247 514.3835704223604 30.655863067042155Q518.1873626200993 36.75703492370106 518.1873626200993 46.08260244424308Q518.1873626200993 55.334254947177655 514.3835704223604 61.45934182144401Q510.57977822462163 67.58442869571037 503.56742796570984 70.62164493543936Q496.555077706798 73.65886117516835 486.88962165488175 73.65886117516835ZM486.88962165488175 61.44691619143724Q491.5236632761054 61.44691619143724 494.5288729702404 59.7773373196524Q497.5340826643754 58.10775844786756 498.9735397381928 54.98958746118126Q500.4129968120102 51.87141647449495 500.4129968120102 47.54829452459893V44.6451690948125Q500.4129968120102 40.30013212730904 498.9735397381928 37.17878928396382Q497.5340826643754 34.057446440618605 494.5288729702404 32.39882507763749Q491.5236632761054 30.740203714656374 486.88962165488175 30.740203714656374Q482.2555800336581 30.740203714656374 479.2644997049857 32.39882507763749Q476.2734193763134 34.057446440618605 474.833962302496 37.17878928396382Q473.39450522867855 40.30013212730904 473.39450522867855 44.6451690948125V47.54829452459893Q473.39450522867855 51.87141647449495 474.833962302496 54.98958746118126Q476.2734193763134 58.10775844786756 479.2644997049857 59.7773373196524Q482.2555800336581 61.44691619143724 486.88962165488175 61.44691619143724Z M554.3896216548818 73.65886117516835Q544.7479068720403 73.65886117516835 537.7378153440537 70.62164493543936Q530.7277238160672 67.58442869571037 526.9239316183284 61.45934182144401Q523.1201394205896 55.334254947177655 523.1201394205896 46.08260244424308Q523.1201394205896 36.75703492370106 526.9239316183284 30.655863067042155Q530.7277238160672 24.554691210383247 537.7378153440537 21.541474970654257Q544.7479068720403 18.528258730925266 554.3896216548818 18.528258730925266Q564.055077706798 18.528258730925266 571.0674279657098 21.541474970654257Q578.0797782246217 24.554691210383247 581.8835704223604 30.655863067042155Q585.6873626200993 36.75703492370106 585.6873626200993 46.08260244424308Q585.6873626200993 55.334254947177655 581.8835704223604 61.45934182144401Q578.0797782246217 67.58442869571037 571.0674279657098 70.62164493543936Q564.055077706798 73.65886117516835 554.3896216548818 73.65886117516835ZM554.3896216548818 61.44691619143724Q559.0236632761055 61.44691619143724 562.0288729702404 59.7773373196524Q565.0340826643754 58.10775844786756 566.4735397381928 54.98958746118126Q567.9129968120103 51.87141647449495 567.9129968120103 47.54829452459893V44.6451690948125Q567.9129968120103 40.30013212730904 566.4735397381928 37.17878928396382Q565.0340826643754 34.057446440618605 562.0288729702404 32.39882507763749Q559.0236632761055 30.740203714656374 554.3896216548818 30.740203714656374Q549.7555800336581 30.740203714656374 546.7644997049858 32.39882507763749Q543.7734193763134 34.057446440618605 542.333962302496 37.17878928396382Q540.8945052286787 40.30013212730904 540.8945052286787 44.6451690948125V47.54829452459893Q540.8945052286787 51.87141647449495 542.333962302496 54.98958746118126Q543.7734193763134 58.10775844786756 546.7644997049858 59.7773373196524Q549.7555800336581 61.44691619143724 554.3896216548818 61.44691619143724Z M596.9781205018515 72.45886117516835V31.940203714656377H587.7160430869542V19.728258730925262H596.9781205018515V16.142621059123925Q596.9781205018515 10.307348367038024 599.1293763190017 6.492380528892685Q601.280632136152 2.677412690747346 605.3875734880642 0.8112757577895024Q609.4945148399762 -1.054861175168341 615.284488353743 -1.054861175168341Q617.1027433009207 -1.054861175168341 619.2635449580284 -0.8276893185094352Q621.4243466151363 -0.6005174618505293 623.5036213510245 -0.22334560519162494Q625.5828960869129 0.15382625146727946 627.112182174044 0.652000000000001V11.15708380856276H621.4655570273153Q617.4896911984267 11.15708380856276 615.9275212336416 12.368215065899193Q614.3653512688566 13.579346323235626 614.3653512688566 16.35481372639468V19.728258730925262H627.112182174044V31.940203714656377H614.3653512688566V72.45886117516835Z"/></g></svg>
+    <span>Proof for every drop.</span>
+    <span>© 2026 Kerbproof · <span class="ph">Company name, number and registered address</span></span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  /* painel ao vivo */
+  const panel = document.getElementById('panel');
+  const rows = document.getElementById('pRows');
+  const kFound = document.getElementById('kFound'), kMatched = document.getElementById('kMatched'), kMissing = document.getElementById('kMissing');
+  const stateTxt = document.getElementById('pStateTxt');
+  const restHTML = rows.innerHTML;
+  const header = rows.firstElementChild.outerHTML;
+  const drivers = ['D. Okafor', 'P. Shah', 'T. Reilly', 'A. Ribeiro', 'M. Nowak', 'K. Mensah'];
+  const gbp = v => '£' + v.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let timers = [], raf = 0;
+
+  function rowHTML(i, miss) {
+    const id = 'TBA3182' + String(10480000 + i * 7919).slice(0, 8);
+    const d = drivers[i % drivers.length];
+    return `<div class="p-row new${miss ? ' miss' : ''}"><span class="id">${id}</span><span class="drv">${d}</span><span><span class="chip ${miss ? 'bad' : 'ok'}">${miss ? 'Not paid' : 'Matched'}</span></span><span class="money">${miss ? '£0.00' : '£1.10'}</span></div>`;
+  }
+  function stop() { timers.forEach(clearTimeout); timers = []; cancelAnimationFrame(raf); }
+  function rest() { stop(); rows.innerHTML = restHTML; kFound.textContent = '£2,418.60'; kMatched.textContent = '18,365'; kMissing.textContent = '37'; stateTxt.textContent = 'Done in 4 min'; panel.classList.remove('running'); }
+  function play() {
+    if (reduce) { rest(); return; }
+    stop();
+    panel.classList.add('running'); stateTxt.textContent = 'Matching drops…';
+    rows.innerHTML = header;
+    const T = 4200; let t0 = 0;
+    const ease = x => 1 - Math.pow(1 - x, 3);
+    const tick = now => {
+      if (!t0) t0 = now;
+      const p = Math.max(0, Math.min(1, (now - t0) / T)), e = ease(p);
+      kMatched.textContent = Math.round(18365 * e).toLocaleString('en-GB');
+      kMissing.textContent = Math.round(37 * Math.min(1, e * 1.08));
+      kFound.textContent = gbp(Math.min(2418.6, 2418.6 * Math.min(1, e * 1.08)));
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else { kFound.textContent = '£2,418.60'; kMissing.textContent = '37'; stateTxt.textContent = 'Done in 4 min'; panel.classList.remove('running'); }
+    };
+    raf = requestAnimationFrame(tick);
+    const pattern = [0,0,1,0,0,0,1,0,0,0,0,1,0,0,1,0,0,0,1,0];
+    pattern.forEach((miss, i) => {
+      timers.push(setTimeout(() => {
+        rows.insertAdjacentHTML('beforeend', rowHTML(i, miss));
+        const list = rows.querySelectorAll('.p-row:not(.h)');
+        if (list.length > 6) list[0].remove();
+      }, 120 + i * 200));
+    });
+    timers.push(setTimeout(() => { rows.innerHTML = restHTML; }, T + 400));
+  }
+  document.getElementById('replay').addEventListener('click', play);
+  if ('IntersectionObserver' in window && !reduce) {
+    let played = false;
+    new IntersectionObserver((es, o) => { if (es[0].isIntersecting && !played) { played = true; setTimeout(play, 350); o.disconnect(); } }, { threshold: .5 }).observe(panel);
+  }
+
+  /* formulário */
+  const form = document.getElementById('form'), done = document.getElementById('done'), btn = document.getElementById('submit');
+  const rules = {
+    name: v => v.trim() ? '' : 'Add your name.',
+    company: v => v.trim() ? '' : 'Add your company name.',
+    email: v => !v.trim() ? 'Add your work email.' : (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? '' : 'Check the email: it should look like name@company.co.uk.'),
+    network: v => v ? '' : 'Choose the network you deliver for most.',
+    vans: v => v ? '' : 'Choose roughly how many vans you run.'
+  };
+  function check(name) {
+    const el = form.elements[name], msg = rules[name](el.value), m = document.getElementById('m-' + name);
+    m.textContent = msg; el.closest('.field').classList.toggle('err', !!msg);
+    el.setAttribute('aria-invalid', msg ? 'true' : 'false');
+    if (msg) el.setAttribute('aria-describedby', 'm-' + name); else el.removeAttribute('aria-describedby');
+    return !msg;
+  }
+  Object.keys(rules).forEach(n => {
+    const el = form.elements[n];
+    el.addEventListener('blur', () => { if (el.value) check(n); });
+    el.addEventListener('input', () => { if (el.closest('.field').classList.contains('err')) check(n); });
+  });
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const bad = Object.keys(rules).filter(n => !check(n));
+    if (bad.length) { form.elements[bad[0]].focus(); return; }
+    btn.disabled = true; btn.textContent = 'Sending…';
+    setTimeout(() => {
+      const first = form.elements.name.value.trim().split(/\s+/)[0];
+      document.getElementById('doneTitle').textContent = `Thanks, ${first}. Request received.`;
+      document.getElementById('doneTxt').textContent = `We'll email ${form.elements.email.value.trim()} within one working day with how to send last month's files from ${form.elements.company.value.trim()}.`;
+      form.hidden = true; done.hidden = false; done.focus();
+      btn.disabled = false; btn.textContent = 'Request my free check';
+    }, 700);
+  });
+  document.getElementById('again').addEventListener('click', () => { form.reset(); done.hidden = true; form.hidden = false; form.elements.name.focus(); });
+})();
+/* ---------- história em 3D pela rolagem: o dia de uma van, do mapa ao dinheiro (three.js) ---------- */
+(() => {
+  const sec = document.getElementById('story'); if (!sec) return;
+  const pin = sec.querySelector('.st-pin');
+  if (!window.THREE || !(() => { try { return !!document.createElement('canvas').getContext('webgl'); } catch (e) { return false; } })()) { sec.classList.add('st-static'); return; }
+  const T = THREE, MAP = {"W":1300,"H":1296,"roads":[[0,[1152,-21,1183,-10,1219,0]],[3,[584,232,603,208,638,152,669,96,677,76]],[0,[761,530,789,530,798,536]],[4,[907,715,908,718,907,722,895,758,886,793,891,830,892,867,892,898,890,906]],[3,[852,552,851,544,848,542]],[0,[755,510,772,483]],[0,[403,263,398,267,391,276,386,287,382,304,381,322,384,343,388,355,401,390,408,414]],[0,[621,699,625,696,638,694]],[4,[738,1121,774,1105,784,1105,891,1132]],[3,[681,678,684,682,692,686]],[0,[402,242,413,221,415,199,414,185,402,142,398,118,397,81,400,31,399,25,398,22]],[0,[503,656,491,646,485,643,463,642,446,638]],[0,[503,656,502,653]],[0,[410,591,417,615]],[1,[224,703,209,712,200,715,191,716,159,716,110,708,77,708,42,713,31,716,-32,746,-68,767,-101,788,-116,795,-138,802,-146,804,-160,804]],[1,[349,659,329,662]],[1,[224,703,229,696,234,685]],[2,[584,232,638,296,647,304,657,308]],[2,[461,264,503,245,556,200,559,203,584,232]],[0,[748,541,752,535,761,530]],[0,[753,520,755,526,761,530]],[0,[750,571,740,594]],[0,[744,567,745,560]],[4,[758,1063,756,1035,758,1026,764,1022,770,1022,823,1023,840,1024,848,1026,853,1030,855,1034,860,1091,854,1116]],[4,[823,904,794,902,790,901,788,899,788,877,784,872]],[4,[798,694,791,698,787,706]],[4,[718,1063,726,1062,858,1065]],[4,[484,359,488,356,506,350,508,348]],[4,[632,425,629,373,634,356,652,317,657,308]],[4,[583,536,583,506,578,481]],[4,[470,579,478,598,483,624,487,632,494,642]],[4,[602,637,609,641]],[4,[458,270,471,296,496,322]],[4,[416,601,423,604,432,602]],[4,[407,536,412,541,416,544]],[4,[534,541,488,568]],[4,[516,423,498,429,494,429]],[4,[404,510,409,510]],[4,[744,567,736,566]],[4,[551,532,534,541]],[1,[234,621,232,594]],[0,[617,699,561,705,549,704,535,700]],[0,[404,42,401,81,403,118,407,144,416,173,420,195,419,211,412,246]],[2,[413,250,428,259,446,264,452,263]],[4,[890,906,896,920,898,930]],[4,[657,308,709,222,713,218,733,211,744,205,761,192]],[3,[432,982,451,980,459,977,467,974,501,956,569,927]],[4,[743,870,771,870,784,872]],[3,[569,927,598,915,646,890,664,888,667,892]],[4,[395,20,380,28,373,30,371,30]],[4,[371,30,365,31]],[4,[371,30,383,22,392,14]],[4,[392,255,383,246,373,239]],[4,[373,239,385,241,397,244]],[4,[728,688,732,649,729,645,724,644,719,645]],[1,[798,536,806,542,812,545,828,546]],[0,[797,558,775,564,755,567]],[4,[790,451,794,454]],[4,[808,449,823,443,824,439]],[4,[803,430,810,429,814,434]],[4,[940,569,951,549,952,546,950,540,947,535,932,528,921,521,918,517]],[4,[854,384,857,384,917,408]],[4,[974,431,962,463]],[4,[1002,443,989,477,990,479,1010,486]],[4,[1007,485,1002,498]],[4,[1032,454,1034,458,1021,489]],[4,[1045,428,1017,417]],[4,[1019,418,1015,428]],[4,[1032,454,1035,450,1040,441,1045,428,1053,392,1056,366,1056,333,1057,318,1061,306,1079,268,1084,256,1085,244,1084,236,1079,215]],[4,[1005,75,1015,81,1023,88,1026,94,1029,104,1029,123,1017,154,1017,160,1017,175,1025,188]],[4,[1220,12,1218,5]],[4,[1227,8,1220,12]],[4,[779,467,768,468,765,467,763,466,757,455,753,452]],[4,[761,463,761,459,763,456,766,454]],[4,[753,452,785,458]],[2,[454,269,432,266,410,261]],[4,[455,260,454,254,442,221]],[4,[407,121,408,119,418,116]],[3,[287,1007,264,1000,244,989,237,988,229,987,172,989,165,987]],[2,[379,978,379,972,407,930,423,905,431,890,436,884,448,874,475,856,491,843,522,811]],[4,[764,1190,769,1189,775,1190,840,1203]],[4,[1101,1258,1101,1258]],[4,[613,946,653,925,669,918]],[4,[463,349,504,335]],[4,[528,333,541,334,548,336,553,340,562,349,567,352,570,352,574,350,609,320,632,303,638,296]],[2,[657,308,811,393]],[0,[592,617,598,623,602,637]],[4,[592,617,596,609]],[4,[494,429,492,432,488,435,462,445]],[4,[492,490,500,510,513,536]],[0,[494,642,502,643]],[4,[488,568,475,542]],[4,[419,518,417,542,411,567,411,576]],[0,[408,586,410,591]],[0,[410,591,414,595,416,601]],[4,[494,429,492,411,496,402,497,395]],[4,[368,621,348,607]],[4,[352,608,355,609,363,606]],[4,[246,490,265,482,269,482,274,485,280,500]],[4,[272,365,182,394,113,423]],[1,[232,594,238,604,252,618]],[4,[154,483,182,471]],[4,[180,466,200,456,202,458,205,464]],[4,[172,450,186,482]],[4,[496,322,501,329,504,335]],[4,[504,335,508,348]],[0,[410,459,409,510]],[4,[806,-26,812,-19,831,-11,844,4,844,11,838,18,837,22,838,25,852,38,853,42,852,45,845,52]],[4,[484,254,494,268]],[4,[119,709,111,630,109,546]],[4,[0,716,-2,705,-2,695,-1,680,1,678]],[3,[743,870,742,921]],[3,[742,921,742,925,740,926,692,925]],[4,[459,501,483,494,509,484]],[4,[354,1422,333,1404,325,1392,313,1380,310,1372,320,1349,322,1342,322,1331,321,1315,321,1304,324,1293,338,1268,340,1262,340,1250]],[4,[365,31,358,25,347,-11]],[4,[317,23,317,12,310,12,300,-13]],[4,[347,-11,305,2]],[4,[338,548,335,466,314,366,310,363]],[4,[329,438,342,436]],[4,[205,386,196,367,176,306,176,290]],[4,[363,211,360,224,361,238,367,259,367,271]],[4,[321,345,322,342,330,335,324,324]],[4,[78,332,136,319]],[4,[254,370,249,358,244,341]],[4,[91,190,91,190]],[4,[86,187,72,160,52,126]],[4,[-10,171,23,149,62,120]],[4,[23,149,34,163,40,180]],[4,[42,25,24,24,14,25,5,27,-11,34,-97,97]],[3,[187,716,185,721,174,737,126,793]],[4,[259,693,269,721]],[4,[292,756,283,759]],[4,[220,839,218,834,164,849,152,851]],[4,[252,744,252,747,260,769,202,788,128,810]],[4,[126,795,128,810]],[4,[151,836,214,817,270,798]],[4,[36,838,39,858]],[4,[4,729,43,809]],[4,[7,852,2,858,-30,874,-46,886,-49,890,-48,894,-41,903,-39,904,-23,900,6,898,54,885,64,881,84,879]],[4,[370,747,368,724,357,692]],[4,[357,692,371,684,378,674]],[4,[183,887,206,879,224,871,275,857,286,852]],[0,[363,605,379,586]],[0,[368,621,362,612,362,608,363,605]],[4,[154,876,152,851,150,843,151,836]],[4,[262,738,261,740,252,744]],[4,[258,726,269,721,273,723,288,757]],[4,[172,770,165,747]],[3,[126,795,84,804,22,811,-16,826]],[4,[119,709,121,744,126,795]],[4,[129,824,131,826,146,828,151,836]],[4,[7,852,-16,826]],[4,[442,221,516,195]],[4,[460,164,442,170,435,176,431,185]],[4,[418,116,438,112]],[4,[288,34,264,22,258,16,259,12,263,9,275,8,278,5,279,2,278,-15]],[4,[278,364,272,365]],[4,[74,111,85,103,94,101,100,97,104,92,127,80]],[4,[62,120,74,111]],[4,[94,544,103,543,109,546,111,544,114,543,123,544]],[4,[17,209,-6,222,-10,216]],[4,[6,371,7,372]],[4,[108,411,77,428,52,383]],[1,[70,312,52,265,46,255,2,185,-12,167,-32,151,-48,143]],[4,[66,709,74,765]],[4,[42,713,47,739]],[4,[692,686,695,703,710,841]],[4,[542,760,517,771,501,775]],[4,[790,901,781,911,778,922,742,921]],[4,[834,584,825,580,820,580]],[4,[702,1003,712,997,726,986,744,985]],[4,[641,757,699,740]],[4,[617,788,616,807]],[4,[661,843,676,841,710,841]],[4,[891,1132,900,1131]],[0,[569,927,546,873,541,853,538,807]],[0,[573,958,569,950,569,927]],[4,[708,818,684,820,678,766,674,748,651,694]],[4,[814,613,905,657,910,664,912,673]],[4,[894,1024,935,1019]],[4,[826,853,832,846,833,836]],[4,[400,916,388,906,382,905,364,923]],[4,[432,982,469,921,473,916,537,863]],[4,[582,800,617,788,646,781]],[4,[655,823,614,833,581,843,546,860,542,859]],[4,[791,817,794,820,851,817,889,820]],[4,[710,841,725,844,743,842]],[4,[498,788,522,811]],[3,[743,842,737,751,732,699,734,690]],[4,[407,930,399,924,398,919,411,896]],[4,[790,861,779,852]],[4,[549,704,560,778]],[4,[836,579,832,576,824,551]],[4,[558,759,611,746,623,746,637,743]],[4,[914,1141,923,1135,927,1130,929,1113,932,1100,946,1063,937,993,941,965]],[0,[537,792,542,773]],[4,[577,780,582,800]],[4,[560,778,577,780,609,771,635,760,641,758]],[4,[895,948,901,948,913,956,920,945]],[4,[576,846,605,911]],[4,[451,980,470,1050,483,1082,492,1093]],[4,[536,941,544,962,543,964,528,976,524,981,523,1000,521,1003,505,1008,377,1041,375,1041,370,1026,368,1025,353,1028,347,1028,336,1025,335,1026]],[4,[505,1008,514,1040,518,1075,520,1111,524,1124]],[3,[379,978,432,982]],[4,[287,899,321,996]],[4,[354,1069,364,1089,376,1106,396,1115,416,1120,461,1122,479,1129,492,1140,502,1154,521,1174,535,1179,549,1182]],[4,[376,1106,373,1119,375,1128,378,1137,389,1154,406,1171,418,1180,433,1187]],[4,[389,1154,380,1160]],[4,[416,1120,414,1145]],[4,[454,1122,452,1140]],[4,[502,1154,488,1166,456,1174,448,1173,433,1158]],[4,[470,1171,474,1185]],[4,[527,1177,514,1220]],[4,[517,1208,475,1195]],[4,[558,1156,549,1182,541,1229,539,1236]],[4,[539,1236,528,1240,523,1238,515,1229,510,1228,495,1228,484,1226,466,1220,454,1212,450,1207]],[4,[562,1141,561,1131,563,1060,568,970,568,964,573,958]],[4,[564,1029,579,1030,583,1027,589,1021,596,1017,623,1009,640,1008,660,998,675,992]],[4,[562,1084,586,1078,598,1079,615,1076,620,1073,620,1062,629,1059]],[4,[570,1149,632,1148,650,1146,674,1140,738,1121]],[4,[624,1148,622,1222,620,1231,617,1234]],[4,[622,1206,649,1207,652,1208,665,1236]],[4,[602,1261,590,1261,579,1262,546,1262]],[4,[541,1229,575,1235,577,1236,579,1262]],[4,[612,1237,602,1245,602,1281]],[4,[632,1282,592,1282,590,1284,590,1289,588,1291,559,1291,559,1304,556,1308]],[4,[628,1268,632,1269,632,1292,624,1292]],[4,[554,1146,554,1146]],[4,[308,961,350,946]],[4,[296,925,326,914,329,911,334,909]],[4,[311,919,318,938]],[4,[321,996,354,1069,361,1066,365,1066,467,1084,480,1088,492,1093,524,1124,531,1134,538,1139,554,1146]],[4,[237,988,234,983,230,966,222,945,183,955,158,964]],[4,[165,987,149,935]],[4,[172,989,198,1017,218,1032,229,1035,256,1033]],[4,[203,1021,212,1011,219,1017,229,1019]],[2,[287,1007,308,1000,362,981,373,978,379,978]],[2,[100,1188,140,1170,163,1158]],[4,[107,1010,84,974]],[4,[112,975,113,944]],[4,[9,1038,17,1032,27,1028]],[4,[31,993,42,1004,44,1011,44,1017]],[4,[36,988,32,980,31,971]],[4,[12,1003,10,994,0,987]],[4,[78,949,59,949,50,952,32,950]],[4,[127,845,127,850,122,852,22,859,10,856,7,852]],[4,[411,576,413,583]],[4,[1341,356,1300,339]],[4,[1377,610,1374,626,1379,634,1381,639,1380,644,1375,651,1367,653,1363,653,1358,650,1348,641,1344,638,1334,636,1330,636,1308,652,1300,652,1296,651,1286,644,1284,636,1286,631,1292,624,1297,611,1300,607,1303,605,1314,604]],[4,[1290,648,1292,646]],[4,[1073,462,1065,472,1064,487,1056,498]],[4,[1060,499,1052,497]],[4,[1103,419,1089,420,1078,424,1073,428,1070,433,1067,441,1068,453,1069,458,1073,462,1080,465,1086,467,1095,467,1100,464,1105,459,1108,454,1109,447,1104,428,1103,419,1107,408,1116,398,1120,388,1120,383,1117,368,1118,356,1120,350]],[4,[1095,467,1097,474,1096,478,1088,494]],[4,[1090,490,1087,488]],[4,[1118,361,1109,360,1105,366,1106,370,1117,368]],[4,[1068,292,1090,302,1103,283,1107,272,1105,271]],[4,[1090,302,1094,305,1108,341,1114,346,1120,350,1130,351,1142,348,1148,344,1154,338,1166,308,1167,299,1164,272,1164,262,1166,255,1171,249,1177,244,1185,242,1196,233,1195,219,1193,214,1174,201,1171,194,1169,187,1174,171,1174,163,1168,149,1151,140,1131,128]],[4,[1142,348,1148,362]],[4,[1147,359,1150,357]],[4,[1161,320,1143,311,1126,313]],[4,[1129,312,1130,318]],[4,[1143,311,1142,301,1142,287]],[4,[1138,287,1146,287]],[0,[779,467,785,458]],[0,[790,451,792,447]],[4,[824,439,840,440,850,443]],[4,[900,542,912,520,918,517]],[4,[912,520,887,502]],[4,[918,517,918,513,920,507,937,483,937,480]],[4,[937,480,944,476,946,470,945,466]],[4,[1079,215,1092,206,1096,200,1102,172,1108,163]],[4,[917,408,1029,454,1032,454]],[4,[911,420,917,408]],[4,[559,437,553,407]],[4,[1092,206,1110,214]],[4,[1117,188,1121,190,1115,207,1103,226,1103,230,1105,233,1121,240,1130,239,1137,231,1145,216]],[4,[1189,211,1200,196,1210,192]],[4,[1151,140,1135,163]],[4,[1130,160,1143,168]],[4,[1169,187,1159,186,1155,187,1148,197]],[4,[1168,149,1184,130]],[4,[1155,121,1162,114,1165,113,1184,130,1198,140]],[4,[1174,171,1180,172,1190,177]],[4,[1187,175,1190,170]],[4,[1198,140,1202,136]],[4,[1193,95,1206,70,1211,67,1222,63,1226,57,1226,52,1224,45,1210,36]],[4,[1200,81,1221,90,1219,102,1215,110]],[4,[1108,163,1111,158]],[4,[1111,158,1142,112,1166,80,1208,40,1216,26,1220,12]],[4,[1178,69,1172,62,1172,54,1176,46,1193,30]],[4,[1189,34,1192,37]],[4,[1029,123,1020,121,1014,117,1010,112,1010,104]],[4,[1010,108,1005,109]],[4,[1029,104,1036,104,1047,101,1058,95,1076,81,1083,71,1100,63,1102,60,1105,48]],[4,[1056,96,1048,78,1048,74,1052,67,1069,43,1086,22,1093,18,1104,17]],[4,[1073,38,1061,32]],[4,[1141,43,1138,77,1125,102]],[4,[1142,112,1111,95,1108,93,1110,90]],[4,[1121,144,1109,137,1101,129,1089,120]],[4,[1089,120,1085,126]],[4,[1101,177,1087,173,1078,168,1065,162]],[4,[1073,145,1060,173,1049,191]],[4,[1054,189,1051,187]],[4,[1087,173,1074,201]],[4,[1075,201,1070,198]],[4,[1025,188,1030,192]],[4,[1030,192,1043,204,1053,211,1061,215,1067,216,1079,215]],[4,[955,331,965,312,972,294,990,258,992,243,990,205,995,182]],[4,[993,188,990,187]],[4,[1017,168,1009,168,998,165]],[4,[1003,167,1011,145]],[4,[1010,147,1012,148]],[4,[1037,148,1032,160,1028,158]],[4,[1035,153,1020,146]],[4,[-20,390,-3,406,4,418,12,426,20,432,33,437,51,425]],[4,[37,353,28,340,23,336]],[4,[51,343,42,331,42,328,43,327,54,318]],[4,[485,311,438,324]],[4,[736,540,746,525]],[4,[736,540,711,536]],[4,[703,557,724,500,731,494,764,472,765,467]],[4,[723,445,736,414]],[4,[669,451,714,472,725,446]],[4,[609,353,613,375]],[4,[590,357,593,378]],[4,[578,481,600,482,617,491,625,493]],[4,[625,493,635,493,643,495,717,518]],[4,[625,493,628,536]],[4,[697,435,698,432]],[4,[538,441,566,437,602,429,647,423,658,423,666,424,685,430,725,446,753,452]],[4,[657,499,669,462,669,425]],[4,[668,379,629,373]],[4,[629,373,525,389]],[4,[591,225,676,276]],[4,[935,179,920,168,915,164,909,163,869,175,861,175,852,171,834,153,809,150,806,149]],[4,[770,-6,784,1,791,7,799,19,801,31,810,43]],[4,[723,50,726,56,729,60,738,66,786,107]],[4,[680,71,699,86]],[4,[674,82,784,170]],[4,[669,96,652,84]],[4,[660,111,761,192]],[4,[647,137,733,211]],[4,[645,140,619,122,583,91,562,79]],[4,[632,162,688,217]],[4,[438,112,460,164]],[4,[446,131,511,104]],[4,[509,176,522,213,528,224]],[4,[460,164,468,192,467,201,461,214]],[4,[540,48,504,86]],[4,[482,116,478,105,501,96]],[4,[488,114,493,127,502,124]],[4,[527,140,582,43]],[4,[468,192,539,165]],[4,[526,138,460,164]],[4,[527,140,539,165,547,177,556,200]],[4,[547,177,567,167]],[4,[102,1706,113,1704,171,1707,197,1716,209,1714,214,1712,217,1709,223,1692,235,1672,236,1657,231,1627,230,1599,234,1575,235,1560,250,1503,249,1496,244,1472,242,1401,234,1365,234,1333,233,1306,230,1273,236,1237,256,1204,256,1184,247,1166]],[4,[1043,204,1031,223,1029,228,1028,238,1024,251]],[4,[1079,268,1052,256,1024,251,1009,244]],[4,[1013,246,1012,250]],[4,[1062,261,1071,235]],[4,[981,276,974,270,972,266,973,248,975,243,977,241,992,243]],[4,[996,311,984,305,981,299,977,295,972,294]],[4,[992,310,991,312]],[4,[968,303,950,296]],[4,[951,292,948,299]],[4,[962,318,936,308]],[4,[896,250,915,257,934,256,943,258]],[4,[942,262,950,238,956,239]],[4,[1057,318,1008,319,1002,318]],[4,[1008,316,1008,319]],[4,[1026,297,1027,318]],[4,[1056,351,1000,351,984,349,955,331]],[4,[1028,351,1029,360,1028,374,1024,391,1021,400]],[4,[1022,400,1017,398]],[4,[1000,351,997,377]],[4,[1001,377,993,376]],[4,[972,341,961,369]],[4,[972,373,971,374]],[4,[962,368,975,375]],[4,[955,331,952,334,929,375,917,408]],[4,[958,387,951,401,923,391]],[4,[956,391,958,392]],[4,[931,371,856,339]],[4,[874,347,893,311,896,308,903,307,914,315,915,315]],[4,[909,323,913,325]],[4,[914,315,911,324]],[4,[578,481,566,437]],[4,[746,525,749,524]],[4,[724,562,658,544]],[4,[1103,1264,1085,1284,1081,1290,1081,1296,1112,1369,1116,1376,1121,1380]],[4,[31,716,19,685,17,682,3,679,1,678,1,675,4,654,7,641,26,600,47,537,52,526,65,513,71,509,78,505,114,497,121,493,133,484,144,471]],[4,[1,678,-15,676,-34,670,-74,667,-81,669,-113,689,-175,733,-198,782,-202,785,-207,787]],[4,[15,624,99,630]],[4,[40,626,40,649,46,649]],[4,[18,683,24,681,53,679]],[4,[174,546,167,539,160,535,141,531,132,528,105,499]],[4,[235,640,161,642]],[4,[182,613,183,639]],[4,[17,-38,36,11]],[4,[-12,167,34,132,53,120,60,110,67,99,66,90]],[4,[44,61,-48,127]],[4,[66,90,62,75,52,64,44,61]],[4,[36,11,42,25]],[4,[-101,90,-16,27,-8,22,3,19,25,16,36,11]],[4,[94,1068,66,1074]],[3,[94,1080,96,1172,100,1188]],[4,[20,340,25,332]],[4,[46,324,43,319]],[4,[48,427,51,432]],[4,[33,437,34,440]],[4,[12,426,9,430]],[4,[1,413,-10,423]],[4,[113,423,32,476,14,479,-10,468]],[4,[-42,451,-32,438,1,456,-1,458]],[4,[-6,261,5,275,15,294]],[4,[9,292,13,290]],[4,[22,244,25,255,30,264,30,273,33,281,37,286]],[4,[768,689,777,692,832,697,855,701,903,711,907,715]],[4,[0,712,3,711]],[0,[678,949,677,957,673,961]],[4,[664,357,684,323]],[4,[680,365,640,344]],[4,[733,-115,732,-107,710,-69,706,-64,687,-50,675,-44,665,-43,641,-50,631,-50,625,-48,616,-44,613,-39,594,8]],[4,[846,-29,846,-21,852,-20,860,-16,867,-9,870,-3,879,3,884,-5,883,-23,887,-35]],[4,[884,27,877,23,876,19,876,9,879,3]],[4,[682,-12,747,35]],[4,[813,80,749,30]],[4,[684,223,691,213]],[4,[848,213,827,193,822,190,804,188,800,185,784,170]],[4,[796,113,796,113]],[4,[583,91,551,149,537,161]],[4,[540,48,544,52,557,74,562,79]],[4,[504,86,504,90,527,140]],[4,[537,89,531,85,528,85,522,92,510,80]],[4,[544,109,571,121,604,143]],[4,[652,84,638,81,584,37]],[4,[619,122,576,183,560,196]],[4,[594,8,596,12,675,81]],[4,[459,446,449,448,443,451]],[0,[405,459,405,442]],[4,[410,459,405,459]],[4,[262,1090,254,1098,248,1111]],[4,[239,1075,256,1083,265,1092,272,1104,273,1110,273,1116,266,1132,265,1140]],[4,[336,1239,325,1216,318,1206,282,1177]],[4,[338,1244,336,1239]],[4,[269,1139,278,1139]],[4,[218,1136,227,1146]],[4,[63,1067,66,1074,67,1080]],[4,[234,1086,185,1046]],[4,[256,1083,264,1071]],[2,[189,1138,227,1096]],[4,[206,1167,182,1185,176,1188,172,1187,168,1183,166,1174,176,1165]],[2,[163,1158,178,1148,189,1138]],[4,[168,1183,159,1188,152,1194]],[4,[153,1181,159,1188]],[4,[340,1250,338,1244]],[4,[222,1131,212,1140]],[4,[227,1096,239,1152,247,1166]],[4,[227,1146,237,1154,245,1171]],[4,[208,1144,212,1140]],[4,[206,1167,209,1164,187,1140]],[4,[227,1146,209,1164]],[2,[239,1075,256,1033,265,1023,271,1017,287,1007]],[4,[95,1124,132,1126]],[2,[85,1196,100,1188]],[4,[66,1010,63,1030,58,1044]],[3,[107,1010,85,1023,83,1033,90,1047,93,1058,94,1080]],[4,[126,1071,111,1079,94,1080]],[4,[83,1033,63,1030]],[2,[-45,1323,-37,1301,-4,1261,22,1236,85,1196]],[4,[286,852,332,808,373,770,374,765,369,751,370,747]],[4,[292,846,278,832]],[4,[332,808,318,793]],[4,[213,722,209,712]],[4,[222,640,222,619]],[4,[203,641,203,654]],[4,[236,676,186,677]],[4,[207,612,207,627]],[4,[233,610,207,612,182,613]],[4,[187,626,183,626]],[4,[175,540,172,542]],[4,[42,551,73,562]],[4,[71,558,70,561]],[4,[139,412,134,402,137,391,133,380]],[4,[129,381,140,376]],[1,[252,618,337,657,349,659]],[4,[918,11,919,12,930,16,940,28]],[4,[853,116,856,113,861,106,866,91,869,87,896,64,903,61,916,60]],[4,[853,116,868,118,895,119,902,116,908,111,915,102]],[4,[916,60,918,48,940,28]],[4,[1020,52,1017,49,1018,44,1021,42,1027,44]],[4,[818,137,834,153]],[4,[950,164,954,168,950,178,966,184]],[4,[910,224,904,221,903,215,905,212,908,212,915,215]],[4,[310,604,304,603,300,601,274,539,263,526,253,511,246,490,205,386]],[4,[315,603,310,604]],[4,[895,251,875,238,870,233]],[4,[890,264,864,246,860,243,860,240]],[4,[869,250,863,261,856,260]],[4,[881,259,875,269]],[4,[890,264,906,271,902,281,895,292]],[4,[784,378,836,284,840,283,851,271]],[4,[836,284,742,216]],[4,[753,224,738,244,714,286]],[4,[714,286,806,339]],[4,[739,300,758,266]],[4,[764,315,785,279]],[4,[693,248,672,235,642,211]],[4,[90,747,121,744]],[4,[965,33,970,26,972,24,984,27,987,24]],[4,[344,599,342,590]],[3,[-231,512,-168,503,-130,478,-97,469,-80,461,-58,442,-46,427,-27,397,-20,390,51,343,78,332]],[4,[344,599,322,602]],[4,[46,40,49,52,44,61]],[4,[475,542,459,501]],[4,[894,1214,1101,1258]],[4,[921,1161,924,1166,932,1169,1113,1208,1117,1211,1118,1216,1111,1251]],[4,[840,1203,894,1214]],[4,[921,1161,900,1176,899,1178,899,1183]],[4,[914,1141,921,1161]],[4,[1112,1266,1162,1380,1167,1388]],[4,[787,706,784,700,777,692]],[4,[787,706,793,783,790,812,791,817]],[3,[734,690,756,692,768,689]],[4,[1218,1277,1226,1233,1229,1226]],[4,[1235,1257,1243,1251,1262,1242,1275,1240,1301,1241,1300,1254]],[4,[94,771,123,768]],[4,[974,1283,995,1306,996,1309,996,1315,990,1325,983,1333,966,1346,961,1349,957,1349,950,1346]],[4,[970,1286,965,1283,907,1271]],[4,[1117,1258,1134,1257,1147,1258,1218,1277]],[4,[1249,1248,1254,1252,1257,1252]],[4,[1218,1277,1242,1285,1256,1291,1266,1297,1291,1314,1297,1317,1329,1321]],[0,[673,961,624,977,609,979,601,978,588,973,582,969,573,958]],[4,[461,-134,452,-121,449,-81,447,16]],[4,[430,24,432,22,440,24,446,18]],[4,[270,798,271,796,262,770,260,769]],[4,[378,-19,378,-10,381,-4,385,0,392,5]],[3,[677,76,680,71,688,65,699,59,723,50]],[4,[940,28,944,26,952,26,982,43]],[4,[774,178,780,167]],[3,[743,38,747,35,766,-3,770,-6,806,-26,824,-38]],[4,[761,192,774,178,784,170,836,120,843,117,853,116]],[4,[916,60,943,66,954,66,958,67,975,81,994,92]],[3,[723,50,734,45,743,38]],[4,[583,536,551,532]],[4,[833,1211,825,1199]],[4,[898,930,894,959,892,993,893,1019,899,1065,905,1102,902,1120,902,1125]],[4,[1275,23,1277,18]],[0,[792,447,799,436]],[0,[799,436,811,415]],[4,[503,1236,505,1228]],[4,[398,42,394,34,389,28,384,27,380,28]],[4,[416,545,469,545,475,542]],[4,[416,545,405,550]],[4,[81,969,79,963,78,945]],[4,[85,971,85,971]],[4,[85,970,91,967,99,964,112,964]],[4,[165,995,166,1011]],[4,[166,1006,160,1006,153,1008,148,1012]],[4,[166,1030,148,1012,130,998]],[3,[165,987,150,985,138,987,130,998]],[4,[79,972,68,979,54,982,36,988,22,1000,-4,1008,-10,1013,-12,1018,-11,1023,9,1038,22,1054,37,1063,45,1070]],[3,[130,998,110,1009]],[1,[1312,677,1284,668,1258,665,1186,661,1134,655,1117,651,1077,635]],[1,[329,662,294,670,272,678,246,690,239,695]],[4,[625,207,641,219,621,244]],[4,[1032,23,1025,36,1023,42]],[4,[768,396,786,404,793,389]],[4,[727,311,713,339]],[4,[411,403,418,431,418,434,410,435]],[4,[443,451,410,459]],[0,[535,700,533,683,528,675]],[4,[765,790,763,760,765,755,765,751,760,749,737,751]],[4,[701,483,696,498,692,498,688,509]],[4,[669,487,683,491,678,506]],[0,[667,892,667,907,671,926]],[4,[614,833,625,879,633,896]],[0,[416,601,422,612]],[4,[728,866,728,855,725,848,725,844]],[4,[382,125,336,138,338,147,335,151,329,154,328,157,333,173,348,190,356,198,364,202,374,204,389,203,411,199]],[4,[510,1022,498,1026,491,1025,483,1028,481,1024,479,1015]],[4,[498,1026,502,1043]],[4,[473,1182,477,1180]],[4,[492,1011,490,1006,489,1004,486,1004,474,1009,474,1011,474,1016]],[4,[907,1131,910,1134,914,1141]],[4,[892,979,896,979,896,972]],[4,[895,1183,899,1183]],[4,[618,1238,621,1241,622,1245]],[4,[823,904,826,900,833,897,840,897,850,898,859,903,861,905]],[4,[900,1131,900,1131]],[4,[1027,1189,1026,1193,1003,1188,1003,1184]],[4,[941,1022,935,1019]],[4,[850,1121,854,1116]],[4,[935,1019,940,1015]],[4,[854,1116,857,1123]],[4,[734,985,734,997]],[4,[622,1245,619,1244,616,1239]],[4,[1003,1184,1004,1181,1028,1186,1027,1189]],[4,[760,1288,759,1290,728,1292]],[4,[332,1041,328,1042]],[4,[311,1122,305,1121]],[4,[284,1078,280,1081]],[4,[345,1112,346,1117]],[4,[307,1114,304,1125]],[4,[295,1110,297,1103,295,1094,291,1084,280,1074]],[4,[428,843,438,856]],[4,[347,1051,339,1055,337,1054,332,1041,333,1038]],[4,[273,1110,293,1109,308,1114,320,1115,330,1117,350,1116]],[4,[331,1028,333,1035,333,1038]],[4,[310,363,299,360,290,360,278,364]],[4,[42,426,66,410]],[4,[967,144,960,140,958,134,960,131,963,130,971,134]],[0,[755,567,747,563,745,560]],[0,[681,678,665,688,651,694]],[0,[677,676,692,662,706,643,737,588,739,582]],[0,[417,615,416,616]],[3,[683,686,680,688,665,688]],[3,[708,686,717,686]],[4,[733,564,724,562]],[4,[739,582,740,570,738,567]],[0,[739,582,744,567]],[4,[322,602,315,603]],[4,[348,607,344,603,344,599]],[0,[856,339,875,302,895,251,925,194,935,179,958,156,964,149,983,110]],[0,[1084,-3,1070,6,1052,20,1027,44]],[3,[680,926,674,934]],[3,[671,926,680,926]],[4,[738,567,736,566]],[4,[733,564,742,562]],[1,[646,696,627,706,624,711]],[0,[651,694,628,699,621,699]],[4,[1222,1254,1235,1257,1237,1260,1241,1263,1270,1276,1307,1299]],[4,[129,824,127,828,127,845]],[4,[494,779,481,785,470,793,460,802,428,843,422,852,419,859,414,865,404,871,394,882]],[4,[501,775,494,779]],[2,[522,811,529,804]],[4,[367,271,363,281,354,291]],[3,[419,201,422,208,417,239,420,255]],[4,[516,392,497,395]],[0,[1235,5,1242,7]],[0,[1244,13,1232,9]],[0,[1227,8,1181,-5,1154,-16]],[0,[1242,7,1277,18]],[1,[828,546,797,558]],[0,[386,576,394,564,402,546,403,532,404,510]],[4,[378,656,376,663,378,674]],[0,[380,584,391,577,397,577,403,581]],[1,[358,658,349,659]],[1,[328,653,329,662]],[4,[244,691,245,703]],[4,[245,703,258,726,262,738]],[4,[233,610,242,609]],[4,[742,562,745,560]],[1,[374,653,377,651,379,647,380,642,378,632]],[1,[396,636,392,642,378,656,371,658,358,658]],[4,[813,447,824,460,828,461,833,461,840,456,843,440]],[4,[814,434,824,439]],[4,[326,914,333,933]],[4,[342,590,338,548]],[4,[432,602,422,612]],[4,[655,637,649,638]],[4,[470,579,446,592,432,602]],[4,[497,395,484,359]],[4,[321,908,293,918]],[4,[163,692,186,694]],[4,[162,686,163,697]],[4,[159,612,162,686]],[4,[136,632,138,656,139,669]],[3,[683,686,681,686,678,682,677,676]],[4,[728,866,722,866]],[4,[784,872,790,861,826,853,838,854,871,863,892,867]],[4,[444,1024,440,1035,438,1038,430,1041,415,1036,413,1032]],[4,[402,1035,407,1050]],[4,[433,1054,430,1056]],[4,[430,1041,433,1054,437,1054]],[4,[482,1079,475,1086]],[4,[519,1106,515,1110,510,1111]],[4,[850,786,793,783]],[4,[790,742,895,758]],[4,[684,323,702,292,714,286]],[4,[178,731,186,758]],[4,[442,221,424,166,408,127,407,121]],[4,[937,480,935,477,894,465,886,461,866,449,850,443]],[0,[785,458,790,451]],[4,[670,638,662,637]],[4,[252,744,172,770]],[1,[234,685,236,676,234,621]],[4,[128,810,127,821,129,824]],[0,[608,671,611,682,617,699]],[0,[748,541,749,524]],[1,[239,695,224,703]],[1,[239,695,234,685]],[4,[658,544,628,536,583,536]],[1,[234,621,237,616,240,615,252,618]],[0,[837,372,843,360]],[4,[42,25,46,40]],[0,[749,524,751,515,755,510]],[0,[678,949,687,969,689,976]],[0,[791,1293,797,1319]],[0,[764,1190,747,1140,738,1121]],[4,[593,1170,624,1171]],[4,[597,1194,623,1196]],[4,[593,1220,611,1220,611,1230,613,1233]],[4,[620,1073,624,1075,634,1075]],[4,[418,878,421,872]],[4,[414,865,425,875]],[4,[394,882,383,890,344,905]],[0,[617,699,624,711,631,726,641,757,646,781,651,812,661,843,665,862,668,879,667,892]],[4,[687,666,688,662,686,649,684,644]],[4,[596,609,602,606,618,604]],[4,[609,641,604,646]],[0,[798,536,802,544,802,548,800,554,797,558]],[4,[173,688,183,688,183,677,186,677]],[4,[925,194,952,213,957,203]],[4,[831,59,826,55,818,52,810,43]],[0,[740,594,709,647]],[0,[664,683,677,676]],[0,[638,694,649,690,664,683]],[0,[542,773,535,700]],[2,[538,807,535,804,532,803,529,804]],[0,[422,612,431,624,445,633,462,638,483,639,494,642]],[0,[602,637,604,646]],[0,[409,-2,414,1,417,5,418,10,417,17,409,24]],[0,[407,243,407,243]],[2,[455,270,455,270]],[0,[398,22,392,16,392,8,394,3,398,-1]],[0,[409,24,403,24,398,22]],[4,[488,568,470,579]],[0,[404,491,405,459]],[0,[409,510,409,529,404,562,405,572,408,586]],[0,[379,586,380,584]],[4,[409,510,412,507,416,507]],[4,[352,435,362,434]],[4,[735,724,752,722]],[4,[754,745,751,715]],[4,[613,1233,613,1233]],[4,[644,1246,644,1256]],[4,[621,1263,622,1245,662,1247,663,1250]],[3,[828,593,825,597]],[3,[825,597,814,613]],[4,[699,429,703,418,704,408]],[4,[698,432,699,429]],[4,[700,407,706,409]],[0,[405,442,404,419,400,400,384,358,380,344,377,322,380,295,390,268,395,259]],[0,[410,443,410,452]],[4,[433,1017,435,1026]],[4,[408,1033,406,1025,406,1021,410,1019,422,1016,430,1018,440,1015]],[4,[370,1028,381,1024,383,1019,390,1016]],[0,[502,643,556,618,564,616,578,617,589,616,592,617]],[4,[820,580,815,577,753,590]],[3,[834,584,830,590]],[3,[814,613,774,675,769,684,768,689]],[0,[790,1308,791,1293]],[4,[537,863,542,859]],[2,[529,804,530,801,537,792]],[4,[378,674,375,669,373,660,370,658]],[0,[738,1121,724,1084,702,1003]],[4,[789,1285,785,1286,757,1287]],[1,[885,543,875,542]],[1,[828,546,848,542]],[4,[39,177,34,178]],[4,[678,1000,671,981]],[4,[1299,1294,1305,1280]],[0,[442,636,431,629,416,616]],[4,[539,1236,540,1239,542,1303,542,1307,538,1310,539,1313,534,1326,530,1328]],[4,[462,1304,466,1297,467,1289,464,1280,464,1276,470,1264,475,1263,484,1258,489,1259,498,1266,503,1274,487,1307]],[4,[503,1274,520,1272,525,1273,527,1274,529,1293,526,1305]],[4,[560,196,556,200]],[4,[3,989,6,982,13,980]],[0,[416,616,408,602,405,592]],[4,[428,507,459,501]],[4,[25,1029,27,1034]],[4,[776,474,774,470,768,468]],[4,[410,440,418,435,418,434]],[4,[418,435,434,430]],[4,[420,434,423,444]],[4,[427,432,431,442]],[4,[437,438,430,440]],[4,[333,1059,340,1057,339,1055]],[4,[222,945,218,927]],[4,[575,56,586,62,589,58]],[4,[561,51,552,39]],[4,[812,-1,814,4,821,12]],[4,[822,32,831,22,838,21]],[4,[6,371,-14,346,-20,337,-24,327,-27,314,-27,303,-20,279,-13,268,-6,261,34,236]],[0,[755,567,750,571]],[4,[755,567,744,567]],[4,[725,562,736,540]],[4,[85,1196,76,1184,61,1177]],[0,[538,807,537,792]],[4,[502,653,494,642]],[0,[502,653,501,648,502,643]],[0,[413,619,396,636]],[0,[689,976,680,964,673,961]],[0,[702,1003,689,976]],[0,[791,1293,789,1285]],[0,[789,1285,764,1190]],[4,[348,607,352,608]],[0,[378,632,368,621]],[0,[396,636,384,636,378,632]],[0,[396,636,396,636]],[0,[528,675,503,656]],[1,[78,332,70,312]],[1,[87,357,78,332]],[1,[113,423,87,357]],[1,[232,594,225,580,190,521,181,509,166,493,154,483,136,462,130,452,113,423]],[1,[358,658,374,653]],[4,[183,887,170,892]],[1,[875,542,856,542]],[4,[630,784,639,827]],[4,[656,423,657,402]],[4,[582,800,583,808,585,810,603,804]],[4,[599,-4,680,71]],[4,[400,876,398,871,400,868,409,859,417,853,421,854]],[4,[816,855,824,860,833,862,841,861,848,857]],[0,[403,581,401,567,402,546]],[0,[403,581,408,586]],[0,[671,926,674,934]],[0,[674,934,678,949]],[3,[684,925,680,926]],[3,[692,925,684,925]],[4,[682,641,678,638]],[4,[709,647,692,647,684,644]],[4,[337,177,340,174,346,172,354,171,391,161,395,176]],[3,[856,542,856,546,852,552]],[3,[838,577,834,584]],[4,[832,846,838,854]],[1,[848,542,850,542]],[1,[850,542,856,542]],[3,[743,842,743,870]],[0,[709,647,700,660,681,678]],[0,[604,646,608,671]],[0,[1275,23,1244,13]],[4,[1267,15,1275,11]],[0,[1295,25,1308,30,1315,30]],[4,[736,566,733,564]],[0,[745,560,748,541]],[0,[416,616,413,619]],[4,[422,612,417,615]],[4,[1280,12,1277,18]],[0,[405,592,403,581]],[4,[682,641,690,644,705,644,709,647]],[4,[398,202,398,198,387,199,382,198,361,188,356,180,354,171]],[4,[372,166,362,131]],[4,[365,202,363,211]],[4,[447,16,446,18]],[4,[446,18,445,23,442,25,436,26,432,26,430,24]],[4,[430,24,422,21]],[4,[418,13,422,21]],[4,[422,21,413,21]],[4,[890,906,861,905]],[4,[861,905,823,904]],[4,[858,1325,914,1331,924,1328,930,1325,974,1283,978,1278,983,1267,990,1234]],[4,[858,1325,848,1272,832,1215,833,1211,840,1203]],[3,[1258,665,1280,597]],[3,[1277,575,1277,575]],[4,[1286,577,1290,581]],[4,[1293,582,1286,585]],[3,[1285,567,1284,575]],[3,[1277,575,1285,567]],[3,[1280,597,1280,591,1277,586]],[3,[1285,586,1280,597]],[4,[1283,4,1296,-12]],[2,[824,401,819,401,813,397]],[2,[811,393,821,397,824,401]],[0,[824,401,802,438]],[4,[783,467,779,467]],[0,[796,448,783,467]],[0,[802,438,796,448]],[0,[821,397,837,372]],[3,[811,415,813,397]],[2,[813,397,811,393]],[0,[811,415,821,397]],[0,[837,372,824,401]],[4,[814,434,805,434]],[4,[775,456,784,465]],[0,[776,474,779,467]],[0,[409,24,407,27,404,42]],[0,[1277,18,1295,25]],[0,[1305,35,1275,23]],[4,[111,630,136,632]],[4,[139,669,136,696]],[4,[136,696,134,712]],[4,[106,630,111,630]],[4,[99,630,106,630]],[4,[342,436,352,435]],[4,[362,434,372,432]],[4,[582,43,594,8]],[4,[559,1291,559,1288]],[4,[370,747,401,730,406,727,410,719,409,712,394,689,378,674]],[0,[617,699,621,699]],[4,[662,637,664,635,673,635]],[4,[673,635,678,638]],[4,[678,638,670,638]],[4,[662,637,655,637]],[4,[684,644,682,641]],[4,[649,638,645,639]],[4,[642,639,609,641]],[4,[645,639,642,639]],[0,[994,92,983,110]],[0,[1027,44,1020,52]],[0,[999,85,994,92]],[0,[1007,71,999,85]],[0,[1020,52,1007,71]],[0,[772,483,775,479]],[0,[843,360,856,339]],[0,[755,510,753,520]],[3,[852,552,838,577]],[3,[830,590,828,593]],[0,[783,467,778,476,775,479]],[0,[775,479,776,474]],[3,[708,686,692,686]],[3,[692,686,683,686]],[3,[726,687,728,688]],[3,[717,686,726,687]],[4,[793,389,795,384]],[4,[1031,224,1035,225]],[4,[245,703,239,695]],[4,[951,401,950,405]],[4,[701,644,706,643]],[3,[728,688,734,690]],[3,[677,676,681,678]],[0,[1219,0,1231,4]],[0,[1231,4,1235,5]],[0,[1232,9,1227,8]],[4,[361,238,373,239]],[4,[1283,4,1280,12]],[4,[1275,11,1283,4]],[4,[462,445,459,446]],[4,[416,507,428,507]],[4,[428,507,414,512,412,512,409,510]],[4,[194,1012,183,1023,186,1026]],[4,[183,1023,181,1020]],[1,[1077,635,1039,614,1021,606,965,584,949,577,940,569,910,551,892,544,885,543]],[3,[110,1009,107,1010]],[4,[117,1021,110,1009]],[2,[227,1096,232,1089,239,1075]],[4,[252,1139,255,1140,265,1140]],[4,[265,1140,269,1139]],[4,[282,1177,272,1169,264,1166,247,1166]],[4,[1293,582,1329,592,1377,610,1408,615,1421,616,1464,627]],[4,[1290,581,1293,582]],[3,[1285,567,1290,562,1296,551]],[3,[1296,551,1306,523,1318,488]],[0,[410,452,410,459]],[0,[408,414,410,443]],[0,[404,510,404,491]],[0,[380,584,386,576]],[0,[446,638,442,636]],[4,[125,1034,117,1021]],[4,[168,452,174,449]],[4,[172,770,173,772]],[4,[32,847,37,846]],[4,[391,161,390,158]]],"rivers":[[1005,673,989,675,965,665,945,653,936,652,924,625,929,612,927,609,909,614,884,596,874,593,859,585,849,586,844,598,833,600,821,589,810,599,792,605,768,610,738,610],[1035,665,1005,673],[578,600,565,606],[704,606,578,600],[561,608,536,617],[536,617,493,637],[443,664,396,623,369,595,367,581,385,516,391,482,392,418,375,369,359,339,304,274,296,251,293,231,304,161,292,92,283,64,272,52,220,20,161,-25,118,-62,102,-83,92,-105,89,-121,91,-139,98,-157,128,-209,156,-247,199,-293,234,-323,247,-339,253,-352,256,-368,251,-392,220,-435,197,-456,182,-466,123,-491],[564,607,561,608],[565,606,564,607],[721,606,704,606],[738,610,721,606],[482,647,454,646],[107,921,162,916,187,909,207,903,224,895,242,881,256,877,271,874,354,872,390,850,400,837,420,797,443,772,475,726,478,718,480,708,475,695,443,664],[-544,1414,-474,1383,-441,1356,-406,1339,-342,1305,-278,1290,-252,1287,-235,1280,-201,1259,-167,1230,-145,1187,-134,1155,-130,1120,-129,1091,-117,1068,-93,1044,-76,1005,-48,969,-25,949,18,927,41,922,107,921],[1088,763,1085,763,1061,741,1064,732,1077,725,1089,723,1094,715,1083,700,1086,675,1047,665,1035,665],[454,646,436,658],[493,637,482,647]]};
+  const PAPER = 0xF4F3EF, INK = '#15161C', VIOLET = '#5B3DF5', BOXC = '#D9A35B';
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v)), seg = (p, a, b) => clamp((p - a) / (b - a)), lerp = (a, b, t) => a + (b - a) * t;
+  const io = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, oc = t => 1 - Math.pow(1 - t, 3), sm = t => t * t * (3 - 2 * t);
+  const V = (x, y, z) => new T.Vector3(x, y, z);
+
+  /* ---------- palco ---------- */
+  const R = new T.WebGLRenderer({ antialias: true, alpha: false });
+  R.setClearColor(PAPER); R.shadowMap.enabled = true; R.shadowMap.type = T.PCFSoftShadowMap;
+  R.domElement.id = 'stc'; R.domElement.setAttribute('aria-hidden', 'true'); pin.prepend(R.domElement);
+  const ov = document.createElement('canvas'); ov.className = 'st-ov'; ov.setAttribute('aria-hidden', 'true'); pin.insertBefore(ov, R.domElement.nextSibling); const c2 = ov.getContext('2d');
+  const scene = new T.Scene(); scene.fog = new T.Fog(PAPER, 100, 1000);
+  const cam = new T.PerspectiveCamera(30, 1, .5, 20000);
+  scene.add(new T.HemisphereLight(0xFFFFFF, 0xCFCBC2, .72));
+  const sun = new T.DirectionalLight(0xFFFFFF, .95); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 220 }); sun.shadow.bias = -.0004; sun.shadow.radius = 4;
+  scene.add(sun, sun.target);
+  const M = (c, o = {}) => new T.MeshStandardMaterial(Object.assign({ color: c, roughness: .85, metalness: 0 }, o));
+  const mesh = (g, m, sh = true) => { const x = new T.Mesh(g, m); x.castShadow = sh; x.receiveShadow = true; return x; };
+  const TEXS = [], tex = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); const t = new T.CanvasTexture(c); t.anisotropy = 4; TEXS.push([t, f]); return t; };
+
+  /* chão e mapa da cidade (ruas reais do OpenStreetMap, 1 unidade do mapa ≈ 2,3 m) */
+  const ground = mesh(new T.PlaneGeometry(9000, 9000), M(PAPER, { roughness: 1 }), false); ground.rotation.x = -Math.PI / 2; scene.add(ground);
+  const MS = 2.3, DEP = [650, 640], mx = x => (x - DEP[0]) * MS, mz = y => (y - DEP[1]) * MS;
+  const segs = []; MAP.roads.forEach(([c, a]) => { for (let i = 2; i < a.length; i += 2) segs.push(mx(a[i - 2]), .06, mz(a[i - 1]), mx(a[i]), .06, mz(a[i + 1])); });
+  const mapG = new T.BufferGeometry(); mapG.setAttribute('position', new T.Float32BufferAttribute(segs, 3));
+  const mapMat = new T.LineBasicMaterial({ color: 0xA9A69D, transparent: true, depthTest: false }); const mapLines = new T.LineSegments(mapG, mapMat); mapLines.renderOrder = 1; scene.add(mapLines);
+  const rivG = new T.BufferGeometry(), rv = []; MAP.rivers.forEach(a => { for (let i = 2; i < a.length; i += 2) rv.push(mx(a[i - 2]), .05, mz(a[i - 1]), mx(a[i]), .05, mz(a[i + 1])); });
+  rivG.setAttribute('position', new T.Float32BufferAttribute(rv, 3)); const rivMat = new T.LineBasicMaterial({ color: 0x8DB8EC, transparent: true, depthTest: false }); scene.add(new T.LineSegments(rivG, rivMat));
+  const plen = a => { let L = 0; for (let i = 2; i < a.length; i += 2) L += Math.hypot(a[i] - a[i - 2], a[i + 1] - a[i - 1]); return L; };
+  function ribbon(a, w){ const v = []; for (let i = 2; i < a.length; i += 2) { const x1 = mx(a[i - 2]), z1 = mz(a[i - 1]), x2 = mx(a[i]), z2 = mz(a[i + 1]), l = Math.hypot(x2 - x1, z2 - z1) || 1, nx = -(z2 - z1) / l * w, nz = (x2 - x1) / l * w;
+    v.push(x1 + nx, .1, z1 + nz, x1 - nx, .1, z1 - nz, x2 + nx, .1, z2 + nz, x1 - nx, .1, z1 - nz, x2 - nx, .1, z2 - nz, x2 + nx, .1, z2 + nz); }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(v, 3)); return g; }
+  const ROUTES = MAP.roads.filter(r => r[0] <= 3).map(r => ({ a: r[1], L: plen(r[1]) })).sort((x, y) => y.L - x.L).slice(0, 10).map((r, i) => {
+    const m = new T.Mesh(ribbon(r.a, 6), new T.MeshBasicMaterial({ color: i % 3 === 2 ? 0x15161C : i % 3 ? 0x8C78FF : 0x5B3DF5, transparent: true, side: T.DoubleSide, depthTest: false })); m.renderOrder = 2; scene.add(m); return { m, n: r.a.length / 2 - 1 }; });
+  const pulse = new T.Mesh(new T.RingGeometry(1, 1.35, 48), new T.MeshBasicMaterial({ color: 0x5B3DF5, transparent: true, side: T.DoubleSide, depthTest: false }));  pulse.rotation.x = -Math.PI / 2; pulse.position.y = .2; scene.add(pulse);
+  const dot = new T.Mesh(new T.CircleGeometry(1, 32), new T.MeshBasicMaterial({ color: 0x5B3DF5, transparent: true, depthTest: false })); dot.renderOrder = 3; dot.rotation.x = -Math.PI / 2; dot.position.y = .25; scene.add(dot);
+
+  /* ruas do bairro: reta, curva em T e reta (metros) */
+  const RZ = 6, CX = 260, CR = 20, ZEND = 160, L1 = CX, LA = Math.PI / 2 * CR, DTOT = L1 + LA + (ZEND - RZ - CR);
+  const along = d => d <= L1 ? { x: d, z: RZ, h: 0 } : d <= L1 + LA ? (t => ({ x: CX + CR * Math.sin(t), z: RZ + CR - CR * Math.cos(t), h: t }))((d - L1) / CR) : { x: CX + CR, z: RZ + CR + (d - L1 - LA), h: Math.PI / 2 };
+  const asph = M(0x32343C, { roughness: .95 }), kerb = M(0xDDDBD4, { roughness: 1 });
+  const dash = tex(128, 64, (g, w, h) => { g.fillStyle = '#32343C'; g.fillRect(0, 0, w, h); g.fillStyle = '#F4F3EF'; g.fillRect(0, 31, 64, 2); });
+  function strip(x1, z1, x2, z2, w, mat, y = .02){ const l = Math.hypot(x2 - x1, z2 - z1), m = mesh(new T.PlaneGeometry(l, w), mat, false); m.rotation.x = -Math.PI / 2; m.rotation.z = -Math.atan2(z2 - z1, x2 - x1); m.position.set((x1 + x2) / 2, y, (z1 + z2) / 2); scene.add(m); return m; }
+  function roadLine(x1, z1, x2, z2){ const l = Math.hypot(x2 - x1, z2 - z1), t = dash.clone(); t.needsUpdate = true; t.wrapS = T.RepeatWrapping; t.repeat.set(l / 6, 1);
+    strip(x1, z1, x2, z2, 8, new T.MeshStandardMaterial({ map: t, roughness: .95 })); const n = [-(z2 - z1) / l, (x2 - x1) / l]; strip(x1 + n[0] * 5, z1 + n[1] * 5, x2 + n[0] * 5, z2 + n[1] * 5, 2, kerb, .08); strip(x1 - n[0] * 5, z1 - n[1] * 5, x2 - n[0] * 5, z2 - n[1] * 5, 2, kerb, .08); }
+  roadLine(-90, RZ, CX + 2, RZ); roadLine(CX + 2, RZ, 520, RZ); roadLine(CX + CR, RZ + CR, CX + CR, 420);
+  { const ring = mesh(new T.RingGeometry(CR - 4, CR + 4, 40, 1, 0, Math.PI / 2), asph, false); ring.rotation.x = -Math.PI / 2; ring.position.set(CX, .025, RZ + CR); scene.add(ring); }
+
+  /* casas geminadas, depósito, caixas */
+  const doorCols = ['#8E8C85', '#5E6270', '#B5A58A', VIOLET];
+  const fronts = doorCols.map(dc => tex(256, 256, (g, w, h) => { g.fillStyle = '#EEECE7'; g.fillRect(0, 0, w, h); g.fillStyle = '#3A3D48'; [[34, 40], [150, 40], [34, 150]].forEach(([x, y]) => g.fillRect(x, y, 72, 62)); g.fillStyle = '#F7F6F2'; [[34, 40], [150, 40], [34, 150]].forEach(([x, y]) => { g.fillRect(x + 34, y, 4, 62); }); g.fillStyle = dc; g.fillRect(160, 140, 56, 116); g.fillStyle = '#D7D4CC'; g.fillRect(150, 132, 76, 8); }));
+  const wallM = M(0xEEECE7), roofM = M(0x8A857C, { roughness: .9 }), frontM = fronts.map(t => new T.MeshStandardMaterial({ map: t, roughness: .9 }));
+  const roofG = (() => { const s = new T.Shape(); s.moveTo(-4.3, 0); s.lineTo(0, 2.6); s.lineTo(4.3, 0); s.closePath(); const g = new T.ExtrudeGeometry(s, { depth: 7.3, bevelEnabled: false }); g.translate(0, 0, -3.65); g.rotateY(Math.PI / 2); return g; })();
+  function house(x, z, rot, i){ const h = 6 + (i * 7 % 3) * .7, g = new T.Group(), body = mesh(new T.BoxGeometry(7, h, 8), [wallM, wallM, wallM, wallM, frontM[i % 7 === 3 ? 3 : i % 3], wallM]); body.position.y = h / 2; g.add(body);
+    const roof = mesh(roofG, roofM); roof.position.y = h; g.add(roof); if (i % 2) { const ch = mesh(new T.BoxGeometry(.8, 1.6, .8), wallM); ch.position.set(2, h + 2, -1.5); g.add(ch); }
+    g.position.set(x, 0, z); g.rotation.y = rot; scene.add(g); }
+  let hi = 0; for (let x = 18; x < 500; x += 7.2) { if (Math.abs(x - CX - CR) < 12) continue; house(x, RZ - 12, 0, hi++); }
+  for (let x = 205; x < 500; x += 7.2) { if (Math.abs(x - CX - CR) < 14) continue; house(x, RZ + 12, Math.PI, hi++); }
+  for (let z = 44; z < 420; z += 7.2) { house(CX + CR - 12, z, Math.PI / 2, hi++); house(CX + CR + 12, z, -Math.PI / 2, hi++); }
+  { const shed = mesh(new T.BoxGeometry(28, 8, 18), M(0xDCDAD3)); shed.position.set(-24, 4, RZ - 22); scene.add(shed);
+    const sign = tex(512, 96, (g, w, h) => { g.fillStyle = '#15161C'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = '700 46px Geist Mono, monospace'; g.fillText('DEPOT DXM4', 24, 64); g.fillStyle = VIOLET; g.fillRect(w - 60, 30, 36, 36); });
+    const s = mesh(new T.PlaneGeometry(9, 1.7), new T.MeshBasicMaterial({ map: sign }), false); s.position.set(-24, 6.6, RZ - 12.95); scene.add(s);
+    [-32, -24, -16].forEach(x => { const d = mesh(new T.PlaneGeometry(5.2, 4.6), M(0x4A4D58), false); d.position.set(x, 2.3, RZ - 12.94); scene.add(d); });
+    const roofS = mesh(new T.BoxGeometry(29, .5, 19), M(0xC9C6BE)); roofS.position.set(-24, 8.25, RZ - 22); scene.add(roofS); }
+  const boxG = new T.BoxGeometry(.5, .38, .4), boxM = M(BOXC, { roughness: .95 });
+  const cage = []; for (let j = 0; j < 12; j++) { const b = mesh(boxG, boxM); b.position.set(-9.2 + (j % 3) * .55, .27 + Math.floor(j / 3) % 2 * .4, RZ - 5.4 + Math.floor(j / 6) * .45); cage.push({ b, p0: b.position.clone() }); scene.add(b); }
+
+  /* ---------- a van (perfil extrudado com bisel, vidros, portas, rodas) ---------- */
+  const van = new T.Group(); scene.add(van);
+  { const s = new T.Shape(); s.moveTo(-2.95, .42); s.lineTo(-2.95, 2.5); s.quadraticCurveTo(-2.95, 2.68, -2.75, 2.68); s.lineTo(1.15, 2.68); s.quadraticCurveTo(1.62, 2.68, 1.82, 2.36); s.lineTo(2.52, 1.42); s.quadraticCurveTo(2.95, 1.34, 2.95, .98); s.lineTo(2.95, .42); s.closePath();
+    const bodyG = new T.ExtrudeGeometry(s, { depth: 1.86, bevelEnabled: true, bevelThickness: .08, bevelSize: .08, bevelSegments: 4, curveSegments: 16 }); bodyG.translate(0, 0, -.93);
+    van.add(mesh(bodyG, M(0xFBFBF9, { roughness: .35, metalness: .05 })));
+    const gs = new T.Shape(); gs.moveTo(1.12, 2.56); gs.lineTo(1.9, 2.45); gs.lineTo(2.68, 1.47); gs.lineTo(1.12, 1.47); gs.closePath();
+    const glass = mesh(new T.ExtrudeGeometry(gs, { depth: 2.06, bevelEnabled: false }), M(0x23262F, { roughness: .15, metalness: .4 })); glass.geometry.translate(0, 0, -1.03); van.add(glass);
+    const stripe = mesh(new T.BoxGeometry(5.95, .16, 2.06), M(0x5B3DF5, { roughness: .5 })); stripe.position.set(-.05, 1.12, 0); van.add(stripe);
+    const decal = tex(1024, 200, (g, w, h) => { g.font = '800 150px Archivo, Arial Narrow, sans-serif'; g.fillStyle = INK; g.fillText('kerb', 10, 150); const kw = g.measureText('kerb').width; g.fillStyle = VIOLET; g.fillText('proof', 10 + kw, 150); });
+    const dm = new T.MeshBasicMaterial({ map: decal, transparent: true }); [1.033, -1.033].forEach(z => { const d = new T.Mesh(new T.PlaneGeometry(2.9, .57), dm); d.position.set(-.95, 1.72, z); if (z < 0) d.rotation.y = Math.PI; van.add(d); });
+    const dk = M(0x2B2D35, { roughness: .6 });
+    [[3.0, .62, 0, .14, .32, 2.0], [-3.0, .58, 0, .12, .3, 2.0]].forEach(([x, y, z, w, h, d]) => { const b = mesh(new T.BoxGeometry(w, h, d), dk); b.position.set(x, y, z); van.add(b); });
+    const lamp = new T.MeshStandardMaterial({ color: 0xFFF6D8, emissive: 0xFFE8A0, emissiveIntensity: .6 }); [-.68, .68].forEach(z => { const l = mesh(new T.BoxGeometry(.06, .2, .42), lamp, false); l.position.set(2.99, 1.08, z); van.add(l); });
+    const tail = new T.MeshStandardMaterial({ color: 0xD8344A, emissive: 0x801020, emissiveIntensity: .4 }); [-.92, .92].forEach(z => { const l = mesh(new T.BoxGeometry(.06, .55, .16), tail, false); l.position.set(-3.0, 1.55, z); van.add(l); });
+    [-1.12, 1.12].forEach(z => { const m = mesh(new T.BoxGeometry(.14, .3, .2), dk); m.position.set(1.62, 1.86, z); van.add(m); });
+    const seam = M(0xC9CAD0); [[-.4, 1.6], [.95, 1.6]].forEach(([x]) => [1.035, -1.035].forEach(z => { const l = mesh(new T.BoxGeometry(.03, 1.9, .01), seam, false); l.position.set(x, 1.47, z); van.add(l); }));
+  }
+  const doors = [-1, 1].map(sd => { const g = new T.Group(); g.position.set(-2.98, 0, .97 * sd); const d = mesh(new T.BoxGeometry(.05, 2.05, .97), M(0xF6F6F3, { roughness: .4 })); d.position.set(0, 1.48, -.485 * sd); g.add(d); van.add(g); return { g, sd }; });
+  const inside = mesh(new T.BoxGeometry(.04, 2.0, 1.9), M(0x2A2C33), false); inside.position.set(-2.92, 1.48, 0); van.add(inside);
+  const wheels = [[-1.9, .9], [-1.9, -.9], [1.88, .9], [1.88, -.9]].map(([x, z]) => { const g = new T.Group(); g.position.set(x, .4, z);
+    const tyre = mesh(new T.CylinderGeometry(.4, .4, .28, 28), M(0x1B1C21, { roughness: .9 })); tyre.rotation.x = Math.PI / 2; g.add(tyre);
+    const hub = mesh(new T.CylinderGeometry(.22, .22, .3, 6), M(0xB5B8C0, { roughness: .4, metalness: .5 })); hub.rotation.x = Math.PI / 2; g.add(hub); van.add(g); return g; });
+  van.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  [[-17, RZ - 9.5], [-29, RZ - 9.5]].forEach(([x, z]) => { const c = van.clone(); c.position.set(x, 0, z); scene.add(c); });
+
+  /* ---------- paradas e extrato ---------- */
+  const STOPS = [40, 92, 140, 212, 298, 340, 372].map((d, i) => ({ d, n: 108 + i, t: `${String(9 + (i >> 1)).padStart(2, '0')}:${String(12 + i * 7 % 48).padStart(2, '0')}`, side: i % 2 ? 1 : -1 }));
+  const pinsEl = document.createElement('div'); pinsEl.className = 'st-pins'; pinsEl.setAttribute('aria-hidden', 'true'); pin.insertBefore(pinsEl, ov.nextSibling);
+  pinsEl.innerHTML = STOPS.map(s => `<div class="st-pinl"><i></i><span>Stop ${s.n} · ${s.t} · photo ✓</span></div>`).join(''); const pinEls = [...pinsEl.children];
+  const ROWS = [['H01ZB0412557', 'A. Ribeiro', 1], ['H01ZB0412561', 'A. Ribeiro', 1], ['H01ZB0413108', 'P. Shah', 0], ['H01ZB0413112', 'P. Shah', 1], ['H01ZB0414020', 'T. Reilly', 1], ['H01ZB0414033', 'T. Reilly', 0], ['H01ZB0415291', 'D. Okafor', 1], ['H01ZB0415307', 'D. Okafor', 0]];
+  document.getElementById('sbRows').innerHTML = ROWS.map(([id, d, ok]) => `<div class="sb-r" data-ok="${ok}"><span>${id}</span><em>${d}</em><s>Checking</s></div>`).join('');
+  const rowEls = [...document.querySelectorAll('.sb-r')], texts = [...pin.querySelectorAll('[data-in]')], oks = [...pin.querySelectorAll('.st-phone .ok')];
+  const hud = { clock: document.getElementById('stClock'), speed: document.getElementById('stSpeed'), stop: document.getElementById('stStop') };
+
+  /* ---------- tempo da cena ---------- */
+  const dist = p => DTOT * io(seg(p, .3, .76));
+  let W = 0, H = 0, DPR = 1, mob = false, cur = 0, tgt = 0, raf = 0;
+  const lookOff = p => { const b = io(seg(p, .74, .8)) * (1 - io(seg(p, .9, .97))); return mob ? V(0, 0, 13 * b) : V(0, 0, 0); };
+  function camAt(p, vp){
+    const sx = mob ? 0 : -4, side = [V(sx + 6, 8.5, 40), V(sx - 11, 1.2, 0), 28];
+    if (p < .16) { const t = io(seg(p, .0, .155)), y = Math.exp(lerp(Math.log(2900), Math.log(8), t));
+      return [V(lerp(-260, side[0].x, t), y, lerp(1500, side[0].z, oc(t))), V(lerp(0, side[1].x, t), lerp(0, side[1].y, t), lerp(-250, side[1].z, t)), lerp(32, 28, t)]; }
+    if (p < .3) { const k = seg(p, .16, .3); return [side[0].clone().add(V(-2 * k, -.6 * k, -2 * k)), side[1], 28]; }
+    const o = io(seg(p, .3, .46)), s0 = side[0].clone().add(V(-2, -.6, -2)), drv = [V(vp.x + lerp(s0.x, -20, o), lerp(s0.y, 7.7, o), lerp(s0.z, 34, o)), V(vp.x + lerp(side[1].x, 0, o), lerp(1.2, 1.5, o), lerp(1, RZ, o)), lerp(28, 30, o)];
+    if (p < .52) return drv;
+    const r = io(seg(p, .52, .6)), top = [V(vp.x, 78, vp.z + 24), V(vp.x, 0, vp.z), 32];
+    const up = io(seg(p, .9, .995)); if (up > 0) { top[0] = V(vp.x - 90 * up, 78 + 520 * up, vp.z + 24 + 420 * up); top[2] = 32 + 6 * up; }
+    top[1].add(lookOff(p)); top[0].add(lookOff(p));
+    if (r >= 1) return top;
+    return [drv[0].clone().lerp(top[0], r), drv[1].clone().lerp(top[1], r), lerp(drv[2], top[2], r)];
+  }
+  function size(){ const r = pin.getBoundingClientRect(); W = r.width; H = r.height; DPR = Math.min(2, devicePixelRatio || 1); mob = W < 760; R.setPixelRatio(DPR); R.setSize(W, H, false); ov.width = Math.round(W * DPR); ov.height = Math.round(H * DPR); cam.aspect = W / H; render(cur); }
+  const proj = v => { const q = v.clone().project(cam); return [(q.x + 1) / 2 * W, (1 - q.y) / 2 * H, q.z]; };
+
+  function render(p){
+    const d = dist(p), a = along(d), b = along(d + .5), heading = Math.atan2(b.z - a.z, b.x - a.x);
+    van.position.set(a.x, 0, a.z); van.rotation.y = -heading; wheels.forEach(w => w.rotation.z = -d / .4);
+    const door = p < .27 ? sm(seg(p, .15, .18)) * (1 - sm(seg(p, .25, .27))) : 0; doors.forEach(({ g, sd }) => g.rotation.y = sd * door * 1.9);
+    cage.forEach(({ b, p0 }, j) => { const t = io(seg(p, .175 + j * .006, .2 + j * .006)), tx = van.position.x - 2.7, ty = 1.3, tz = RZ; b.visible = t < 1;
+      b.position.set(lerp(p0.x, tx, t), lerp(p0.y, ty, t) + Math.sin(t * Math.PI) * 1.6, lerp(p0.z, tz, t)); b.rotation.set(t * 2, t * 3, 0); });
+    const [cp, ct, fov] = camAt(p, a); cam.position.copy(cp); cam.lookAt(ct);
+    const asp = W / H; cam.fov = 2 * Math.atan(Math.tan(fov * Math.PI / 360) * Math.max(1, 1.45 / asp)) * 180 / Math.PI; const h = cp.distanceTo(ct); cam.near = Math.max(.3, h * .02); cam.far = h * 12 + 2000; cam.updateProjectionMatrix(); scene.fog.near = h * 1.6; scene.fog.far = h * 6 + 80;
+    sun.position.set(ct.x - 38, 50, ct.z + 34); sun.target.position.copy(ct);
+    const far = p < .5 ? seg(h, 150, 700) : 0; mapMat.opacity = far; rivMat.opacity = far; mapLines.visible = far > 0;
+    const grow = .25 + .75 * oc(seg(p, 0, .08)); ROUTES.forEach((r, i) => { r.m.visible = far > 0; r.m.material.opacity = far; r.m.geometry.setDrawRange(0, 6 * Math.floor(r.n * clamp(grow - i * .03 + .04))); });
+    const ps = (performance.now() / 1100) % 1; pulse.scale.setScalar(h * (.012 + ps * .03)); pulse.material.opacity = far * (1 - ps); dot.scale.setScalar(h * .008); dot.material.opacity = far;
+    R.render(scene, cam);
+    overlay(p, d);
+  }
+
+  /* camada 2D: etiquetas das paradas, caixas voando para o extrato, partículas no fim */
+  function overlay(p, d){
+    c2.setTransform(DPR, 0, 0, DPR, 0, 0); c2.clearRect(0, 0, W, H);
+    const showPins = p > .55 && p < .82, bill = io(seg(p, .74, .8));
+    STOPS.forEach((s, i) => { const el = pinEls[i]; if (!showPins) { el.style.opacity = 0; return; } const q = along(s.d), nx = -Math.sin(q.h) * s.side, nz = Math.cos(q.h) * s.side, [x, y, z] = proj(V(q.x + nx * 7.5, 0, q.z + nz * 7.5));
+      const done = d >= s.d; el.classList.toggle('done', done); el.classList.toggle('lab', done && d < s.d + 70 && bill < .5); el.classList.toggle('left', s.side < 0);
+      el.style.opacity = z < 1 && x > -40 && x < W + 40 ? (done ? 1 : .7) * (1 - bill * .6) : 0; el.style.transform = `translate(${x}px,${y}px)`; });
+    if (p > .77) { const [vx, vy] = proj(van.position.clone().setY(2)), pr = pin.getBoundingClientRect();
+      rowEls.forEach((el, j) => { const t = io(seg(p, .78 + j * .011, .81 + j * .011)); if (t <= 0 || t >= 1) return; const r = el.getBoundingClientRect(), tx = r.left - pr.left + 70, ty = r.top - pr.top + r.height / 2;
+        c2.save(); c2.translate(lerp(vx, tx, t), lerp(vy, ty, t) - Math.sin(t * Math.PI) * 90); c2.rotate(t * 4); c2.fillStyle = BOXC; c2.fillRect(-11, -8, 22, 16); c2.fillStyle = 'rgba(0,0,0,.14)'; c2.fillRect(-2, -8, 4, 16); c2.restore(); }); }
+    const fin = io(seg(p, .91, .96)); if (fin > 0) for (let i = 0; i < 70; i++) { const sp = .4 + (i * 37 % 10) / 10, x = (i * 173.3) % W, y = H - ((i * 97.7 + p * 2400 * sp) % (H + 40));
+      c2.globalAlpha = fin * (.25 + (i % 4) * .15); c2.fillStyle = i % 3 ? VIOLET : '#FFB800'; c2.beginPath(); c2.arc(x, y, 1.4 + (i % 3), 0, 7); c2.fill(); }
+    c2.globalAlpha = 1;
+  }
+
+  /* ---------- textos, painéis e instrumentos ---------- */
+  const fmt = n => '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function ui(p){
+    texts.forEach(el => { const a = +el.dataset.in, b = +el.dataset.out, o = Math.min(a <= 0 ? 1 : seg(p, a, a + .02), 1 - seg(p, b - .02, b)); el.style.opacity = o; el.style.transform = `translateY(${(1 - o) * 18}px)`; el.classList.toggle('on', o > .5); });
+    oks.forEach(el => el.classList.toggle('on', p >= +el.dataset.at));
+    const cards = document.getElementById('stCards'); cards.style.opacity = seg(p, .31, .34) * (1 - seg(p, .5, .53)); cards.style.transform = `translateX(${-io(seg(p, .3, .52)) * (cards.scrollWidth - W * .35)}px)`;
+    document.getElementById('stBill').style.opacity = seg(p, .765, .785) * (1 - seg(p, .905, .92));
+    rowEls.forEach((el, j) => { el.classList.toggle('in', p >= .81 + j * .011); const res = p >= .875 + j * .003; el.classList.toggle('ok', res && el.dataset.ok === '1'); el.classList.toggle('bad', res && el.dataset.ok === '0'); el.querySelector('s').textContent = res ? (el.dataset.ok === '1' ? 'Paid' : 'Not paid') : 'Checking'; });
+    document.getElementById('sbSum').textContent = fmt(2418.6 * oc(seg(p, .88, .91)));
+    document.getElementById('stOsm').style.opacity = p < .12 ? 1 : 0;
+    document.getElementById('stBar').style.transform = `scaleX(${p})`;
+    const mins = Math.round(lerp(6 * 60 + 58, 19 * 60 + 40, p)); hud.clock.textContent = `${String(mins / 60 | 0).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+    const v = p < .3 || p > .76 ? 0 : 6 * io(seg(p, .3, .76)) * (1 - io(seg(p, .3, .76))) * 4 * 9.5; hud.speed.textContent = `${Math.round(v)} mph`;
+    const done = STOPS.filter(s => dist(p) >= s.d).length;
+    hud.stop.textContent = p < .3 ? 'Depot DXM4' : p < .55 ? 'Route DX14' : p < .77 ? `Stop ${done ? STOPS[done - 1].n : 107} of 140` : 'Shift ended';
+  }
+
+  function frame(){
+    raf = 0; const dd = tgt - cur; cur = reduce || Math.abs(dd) < .0003 ? tgt : cur + dd * .12;
+    render(cur); ui(cur);
+    if (cur !== tgt || ((cur < .16 || cur > .9) && inView())) raf = requestAnimationFrame(frame);
+  }
+  const inView = () => { const r = sec.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; };
+  function onScroll(){ const r = sec.getBoundingClientRect(), span = sec.offsetHeight - pin.offsetHeight; tgt = clamp(-r.top / span); if (!raf) raf = requestAnimationFrame(frame); }
+  addEventListener('scroll', onScroll, { passive: true }); addEventListener('resize', () => { size(); onScroll(); });
+  if (document.fonts) document.fonts.ready.then(() => { TEXS.forEach(([t, f]) => { const c = t.image, g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); f(g, c.width, c.height); t.needsUpdate = true; }); render(cur); });
+  size(); onScroll(); ui(cur);
+  window.kpStory = p => { cur = tgt = p; render(p); ui(p); };
+})();
+</script>
+
+</body>
+</html>
